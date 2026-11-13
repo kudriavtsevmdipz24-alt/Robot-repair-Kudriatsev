@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
+using UnityEngine.UIElements;
 using UnityEditor.SceneManagement;
 
 // Допоміжний скрипт для налаштування ассетів лабораторних робіт.
@@ -15,6 +17,7 @@ public static class LabSetup
     const string AnimRoot = "Assets/_2DAdventureGame/Animation/Ducko";
     const string ScriptsRoot = "Assets/_2DAdventureGame/Scripts";
     const string PrefabsRoot = "Assets/_2DAdventureGame/Prefabs";
+    const string UIRoot = "Assets/_2DAdventureGame/UI";
     const string EnemySheetPath = ArtRoot + "/Characters/EnemySheet.png";
 
     static Sprite SheetSprite(string name)
@@ -381,5 +384,223 @@ public static class LabSetup
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("LAB5 BONUS OK: random-axis enemy placed");
+    }
+
+    // ─────────────────────────── ЛАБОРАТОРНА 6 ───────────────────────────
+
+    // Кроки 1-4: UI Document, Panel Settings, об'єкт UIDocument на сцені з UIHandler
+    public static void Lab6_Step1_HUD()
+    {
+        var gameUI = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>($"{UIRoot}/GameUI.uxml");
+        if (gameUI == null) throw new Exception("GameUI.uxml not found");
+
+        // Panel Settings: масштабування під розмір екрана
+        var panelSettingsPath = "Assets/_2DAdventureGame/UI/PanelSettings.asset";
+        var panelSettings = AssetDatabase.LoadAssetAtPath<PanelSettings>(panelSettingsPath);
+        if (panelSettings == null)
+        {
+            panelSettings = ScriptableObject.CreateInstance<PanelSettings>();
+            AssetDatabase.CreateAsset(panelSettings, panelSettingsPath);
+        }
+        panelSettings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+        panelSettings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
+        panelSettings.referenceResolution = new Vector2Int(1920, 1080);
+        EditorUtility.SetDirty(panelSettings);
+
+        var scene = EditorSceneManager.OpenScene("Assets/_2DAdventureGame/Scenes/MainScene.unity");
+
+        var existing = GameObject.Find("UIDocument");
+        if (existing == null)
+        {
+            var go = new GameObject("UIDocument");
+            var uiDocument = go.AddComponent<UnityEngine.UIElements.UIDocument>();
+            uiDocument.panelSettings = panelSettings;
+            uiDocument.visualTreeAsset = gameUI;
+            go.AddComponent(LoadScript("UIHandler.cs").GetClass());
+        }
+        else
+        {
+            var uiDocument = existing.GetComponent<UnityEngine.UIElements.UIDocument>();
+            uiDocument.panelSettings = panelSettings;
+            uiDocument.visualTreeAsset = gameUI;
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("LAB6 STEP1 OK: PanelSettings + UIDocument with GameUI + UIHandler");
+    }
+
+    // Кроки 8-14: нарізка NPC-листа, кліп і контролер, префаб NPC з бульбашкою, шар NPC, клавіша X
+    public static void Lab6_Step2_NPC()
+    {
+        // Шар 8 = NPC (його шукає промінь у PlayerController)
+        var tagManager = new SerializedObject(
+            AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset").First());
+        var layers = tagManager.FindProperty("layers");
+        layers.GetArrayElementAtIndex(8).stringValue = "NPC";
+        tagManager.ApplyModifiedProperties();
+
+        // Нарізка листа NPC: Sprite Mode = Multiple
+        var npcSheetPath = ArtRoot + "/Characters/NonPlayerCharacterSheet.png";
+        var importer = AssetImporter.GetAtPath(npcSheetPath) as TextureImporter;
+        var settings = new TextureImporterSettings();
+        importer.ReadTextureSettings(settings);
+        settings.spriteMode = 2; // Multiple
+        settings.spritePixelsPerUnit = 100;
+        importer.SetTextureSettings(settings);
+        importer.SaveAndReimport();
+
+        // Кліп NPC з трьох кадрів, Samples = 4
+        var idleFrames = new[] { "MarthaIdle1", "MarthaIdle2", "MarthaIdle3" };
+        var clip = new AnimationClip { name = "NPC" };
+        clip.frameRate = 4f;
+        var frames = new ObjectReferenceKeyframe[idleFrames.Length + 1];
+        for (int i = 0; i <= idleFrames.Length; i++)
+        {
+            frames[i] = new ObjectReferenceKeyframe
+            {
+                time = i / 4f,
+                value = AssetDatabase.LoadAllAssetsAtPath(npcSheetPath)
+                    .OfType<Sprite>().First(s => s.name == idleFrames[i % idleFrames.Length])
+            };
+        }
+        AnimationUtility.SetObjectReferenceCurve(
+            clip, EditorCurveBinding.PPtrCurve("", typeof(SpriteRenderer), "m_Sprite"), frames);
+        var clipSettings = AnimationUtility.GetAnimationClipSettings(clip);
+        clipSettings.loopTime = true;
+        AnimationUtility.SetAnimationClipSettings(clip, clipSettings);
+        if (!AssetDatabase.IsValidFolder($"{AnimRoot}/NPC"))
+        {
+            AssetDatabase.CreateFolder($"{AnimRoot}", "NPC");
+        }
+        AssetDatabase.CreateAsset(clip, $"{AnimRoot}/NPC/NPC.anim");
+
+        var controller = AnimatorController.CreateAnimatorControllerAtPath($"{AnimRoot}/NPC/NPC.controller");
+        var npcSm = controller.layers[0].stateMachine;
+        var npcState = npcSm.AddState("NPC");
+        npcState.motion = clip;
+        npcSm.defaultState = npcState;
+        AssetDatabase.SaveAssets();
+
+        // Префаб NPC: спрайт, Animator, суцільний колайдер на нижній половині, шар NPC
+        var npcSprite = AssetDatabase.LoadAllAssetsAtPath(npcSheetPath)
+            .OfType<Sprite>().First(s => s.name == "MarthaIdle1");
+        var dialogueSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+            "Assets/_2DAdventureGame/Tutorial_Demo/Demo_Art/Common/Dialogue Box.png");
+
+        var npcGO = new GameObject("NPC");
+        var npcSR = npcGO.AddComponent<SpriteRenderer>();
+        npcSR.sprite = npcSprite;
+        npcSR.spriteSortPoint = SpriteSortPoint.Pivot;
+
+        var npcAnim = npcGO.AddComponent<Animator>();
+        npcAnim.runtimeAnimatorController =
+            AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>($"{AnimRoot}/NPC/NPC.controller");
+
+        var npcCol = npcGO.AddComponent<BoxCollider2D>();
+        var nb = npcSprite.bounds;
+        npcCol.isTrigger = false; // робот впирається у NPC
+        npcCol.size = new Vector2(nb.size.x * 0.8f, nb.size.y * 0.45f);
+        npcCol.offset = new Vector2(0f, nb.size.y * 0.25f);
+
+        var bubble = new GameObject("DialogueBox");
+        bubble.transform.SetParent(npcGO.transform, false);
+        bubble.transform.localPosition = new Vector3(0f, nb.size.y + 0.6f, 0f);
+        bubble.transform.localScale = new Vector3(0.35f, 0.35f, 1f);
+        var bubbleSR = bubble.AddComponent<SpriteRenderer>();
+        bubbleSR.sprite = dialogueSprite;
+        bubbleSR.sortingOrder = 2; // поверх персонажів
+
+        npcGO.AddComponent(LoadScript("NonPlayerCharacter.cs").GetClass());
+
+        // Шар NPC на корені префаба
+        var npcLayerIndex = LayerMask.NameToLayer("NPC");
+        if (npcLayerIndex < 0) throw new Exception("NPC layer not found after adding");
+        npcGO.layer = npcLayerIndex;
+
+        var npcPrefab = PrefabUtility.SaveAsPrefabAsset(npcGO, $"{PrefabsRoot}/NPC.prefab");
+        UnityEngine.Object.DestroyImmediate(npcGO);
+
+        // Прив'язка бульбашки до скрипта у префабі
+        var prefabContents = PrefabUtility.LoadPrefabContents($"{PrefabsRoot}/NPC.prefab");
+        try
+        {
+            var so = new SerializedObject(prefabContents.GetComponent("NonPlayerCharacter"));
+            so.FindProperty("dialogueBubble").objectReferenceValue =
+                prefabContents.transform.Find("DialogueBox").gameObject;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SaveAsPrefabAsset(prefabContents, $"{PrefabsRoot}/NPC.prefab");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(prefabContents);
+        }
+
+        // Клавіша X у префабі гравця
+        var playerPath = $"{PrefabsRoot}/PlayerCharacter.prefab";
+        var player = PrefabUtility.LoadPrefabContents(playerPath);
+        try
+        {
+            var so = new SerializedObject(player.GetComponent("PlayerController"));
+            SetupButtonAction(so, "TalkAction", "Talk", "<Keyboard>/x");
+            so.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SaveAsPrefabAsset(player, playerPath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(player);
+        }
+
+        // NPC на сцену біля старту
+        var scene = EditorSceneManager.OpenScene("Assets/_2DAdventureGame/Scenes/MainScene.unity");
+        var playerGO = GameObject.Find("PlayerCharacter");
+        if (playerGO == null) throw new Exception("PlayerCharacter not found in scene");
+        var py = playerGO.transform.position.y;
+        var npcInstance = (GameObject)PrefabUtility.InstantiatePrefab(npcPrefab, scene);
+        npcInstance.transform.position = new Vector3(-4.5f, py, 0f);
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("LAB6 STEP2 OK: NPC sheet sliced, clip+controller, prefab with bubble, layer NPC, key X");
+    }
+
+    // Крок 15-17: GameManager, посилання, список сцен для перезапуску
+    public static void Lab6_Step3_GameLoop()
+    {
+        var scene = EditorSceneManager.OpenScene("Assets/_2DAdventureGame/Scenes/MainScene.unity");
+
+        var playerGO = GameObject.Find("PlayerCharacter");
+        var uiDocumentGO = GameObject.Find("UIDocument");
+        if (playerGO == null || uiDocumentGO == null) throw new Exception("PlayerCharacter/UIDocument not found in scene");
+
+        var gmGO = GameObject.Find("Game Manager");
+        if (gmGO == null)
+        {
+            gmGO = new GameObject("Game Manager");
+            gmGO.transform.position = Vector3.zero;
+            gmGO.AddComponent(LoadScript("GameManager.cs").GetClass());
+        }
+        var so = new SerializedObject(gmGO.GetComponent("GameManager"));
+        var playerProp = so.FindProperty("player");
+        playerProp.objectReferenceValue = playerGO.GetComponent("PlayerController");
+        so.FindProperty("uiHandler").objectReferenceValue = uiDocumentGO.GetComponent("UIHandler");
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        // MainScene у списку сцен: інакше LoadScene не знайде активну сцену
+        var mainSceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/_2DAdventureGame/Scenes/MainScene.unity");
+        var buildScenes = EditorBuildSettings.scenes.ToList();
+        if (!buildScenes.Any(s => s.path == "Assets/_2DAdventureGame/Scenes/MainScene.unity"))
+        {
+            buildScenes.Insert(0, new EditorBuildSettingsScene("Assets/_2DAdventureGame/Scenes/MainScene.unity", true));
+            EditorBuildSettings.scenes = buildScenes.ToArray();
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("LAB6 STEP3 OK: GameManager with refs, MainScene in build settings");
     }
 }
