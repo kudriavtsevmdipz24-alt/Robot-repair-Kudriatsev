@@ -36,6 +36,15 @@ public class UIHandler : MonoBehaviour
         if (m_NonPlayerDialogue != null)
         {
             m_NonPlayerDialogue.style.display = DisplayStyle.None;
+            Label dialogueLabel = m_NonPlayerDialogue.Q<Label>("NPCDialogueText");
+            if (dialogueLabel != null)
+            {
+                dialogueLabel.style.width = Length.Percent(100);
+                dialogueLabel.style.height = Length.Percent(100);
+                dialogueLabel.style.maxWidth = Length.Percent(100);
+                dialogueLabel.style.whiteSpace = WhiteSpace.Normal;
+                dialogueLabel.style.overflow = Overflow.Hidden;
+            }
         }
         m_TimerDisplay = -1.0f;
 
