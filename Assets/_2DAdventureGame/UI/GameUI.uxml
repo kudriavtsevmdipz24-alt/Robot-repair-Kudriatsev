@@ -7,7 +7,7 @@
     </ui:VisualElement>
     <ui:Label name="FixedCounter" text="Полагоджено 0 / 0" picking-mode="Ignore" style="position: absolute; top: 40px; right: 40px; font-size: 34px; color: rgb(255, 255, 255); -unity-font-style: bold; -unity-text-align: upper-right;" />
     <ui:Template name="NPCDialogue" src="project://database/Assets/_2DAdventureGame/UI/NPCDialogue.uxml?fileID=9197481963319205126&amp;guid=b125f7e67c764fe79344954c22a5ed1a&amp;type=3#NPCDialogue" />
-    <ui:Instance template="NPCDialogue" name="NPCDialogue" style="position: absolute; top: 70%; right: 10%; bottom: 0; left: 10%;" />
+    <ui:Instance template="NPCDialogue" name="NPCDialogue" style="position: absolute; left: 12%; right: 12%; bottom: 24px; height: 220px;" />
     <ui:Template name="EndScreen" src="project://database/Assets/_2DAdventureGame/UI/EndScreen.uxml?fileID=9197481963319205126&amp;guid=f429a8b84b1a41f59e50eada6566483b&amp;type=3#EndScreen" />
     <ui:Instance template="EndScreen" name="EndScreen" picking-mode="Ignore" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;" />
 </ui:UXML>

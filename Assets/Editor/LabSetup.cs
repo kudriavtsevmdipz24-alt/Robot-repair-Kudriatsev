@@ -716,8 +716,8 @@ public static class LabSetup
 
         var bubble = new GameObject("DialogueBox");
         bubble.transform.SetParent(npcGO.transform, false);
-        bubble.transform.localPosition = new Vector3(0f, nb.size.y + 0.6f, 0f);
-        bubble.transform.localScale = new Vector3(0.35f, 0.35f, 1f);
+        bubble.transform.localPosition = new Vector3(0f, nb.size.y * 0.86f, 0f);
+        bubble.transform.localScale = new Vector3(0.03f, 0.03f, 1f);
         var bubbleSR = bubble.AddComponent<SpriteRenderer>();
         bubbleSR.sprite = dialogueSprite;
         bubbleSR.sortingOrder = 2; // поверх персонажів
