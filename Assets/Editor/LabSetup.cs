@@ -386,6 +386,216 @@ public static class LabSetup
         Debug.Log("LAB5 BONUS OK: random-axis enemy placed");
     }
 
+    // ─────────────────────────── ЛАБОРАТОРНА 7 ───────────────────────────
+
+    // Діагностика: ASCII-мапа тайлмапу
+    public static void Lab7_DumpMap()
+    {
+        var scene = EditorSceneManager.OpenScene("Assets/_2DAdventureGame/Scenes/MainScene.unity");
+        var tilemap = GameObject.Find("Tilemap").GetComponent<Tilemap>();
+        var b = tilemap.cellBounds;
+        var sb = new System.Text.StringBuilder();
+        var waterNames = new HashSet<string>();
+        for (int y = b.yMax - 1; y >= b.yMin; y--)
+        {
+            for (int x = b.xMin; x < b.xMax; x++)
+            {
+                var tile = tilemap.GetTile(new Vector3Int(x, y, 0));
+                if (tile == null) { sb.Append('.'); continue; }
+                var path = AssetDatabase.GetAssetPath(tile);
+                var n = System.IO.Path.GetFileNameWithoutExtension(path);
+                char c;
+                if (n.StartsWith("FloorWater")) { c = 'W'; }
+                else if (n.StartsWith("FloorGrass_")) { c = 'G'; }
+                else if (n.StartsWith("FloorBlueGrassToVertical")) { c = 'V'; }
+                else if (n.StartsWith("FloorBricksToGrass") || n.StartsWith("FloorGrassToBricks")) { c = 'B'; }
+                else { c = '?'; }
+                sb.Append(c);
+            }
+            sb.Append($"  y={y}\n");
+        }
+        Debug.Log("MAPSTART\n" + sb.ToString() + "MAPEND");
+        Debug.Log("LAB7 DUMP OK");
+    }
+
+    const string MyLevelPath = "Assets/_2DAdventureGame/Scenes/MyLevel.unity";
+
+    static Type FindCinemachineType(string name)
+    {
+        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var t = a.GetType("Cinemachine." + name) ?? a.GetType("Unity.Cinemachine." + name);
+            if (t != null) return t;
+        }
+        var cine = string.Join(", ", AppDomain.CurrentDomain.GetAssemblies()
+            .Select(a => a.GetName().Name).Where(n => n.ToLower().Contains("cine")));
+        var probe = string.Join(", ", AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => a.GetName().Name.Contains("Cinemachine"))
+            .SelectMany(a => { try { return a.GetExportedTypes(); } catch { return new Type[0]; } })
+            .Select(t => t.FullName)
+            .Where(n => n.Contains("Brain") || n.Contains("Camera") || n.Contains("Composer") || n.Contains("Confiner"))
+            .Take(25));
+        throw new Exception("Cinemachine type not found: " + name + "; assemblies: " + cine + "; types: " + probe);
+    }
+
+    // Крок 3-4: сцена MyLevel у списку сцен; крок 5-7: варіанти, розстановка, камера
+    public static void Lab7_Step1_Level()
+    {
+        // ── Копія сцени ──
+        if (!AssetDatabase.LoadAssetAtPath<SceneAsset>(MyLevelPath) &&
+            !AssetDatabase.CopyAsset("Assets/_2DAdventureGame/Scenes/MainScene.unity", MyLevelPath))
+        {
+            throw new Exception("Scene copy failed");
+        }
+
+        // MyLevel першою у списку сцен
+        var buildScenes = EditorBuildSettings.scenes.ToList();
+        if (!buildScenes.Any(s => s.path == MyLevelPath))
+        {
+            buildScenes.Insert(0, new EditorBuildSettingsScene(MyLevelPath, true));
+            EditorBuildSettings.scenes = buildScenes.ToArray();
+        }
+
+        var scene = EditorSceneManager.OpenScene(MyLevelPath);
+
+        // ── Крок 5: числа з коду в префаби вже у скриптах; тут — варіанти префабів ──
+
+        // Варіант ворога EnemyFast: швидший, жовтий (колір загрози)
+        var enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/Enemy.prefab");
+        var enemyType = LoadScript("EnemyController.cs").GetClass();
+        var fast = (GameObject)PrefabUtility.InstantiatePrefab(enemyPrefab);
+        var fastSo = new SerializedObject(fast.GetComponent(enemyType));
+        fastSo.FindProperty("speed").floatValue = 2f;
+        fastSo.FindProperty("changeTime").floatValue = 1.5f;
+        fastSo.ApplyModifiedPropertiesWithoutUndo();
+        fast.GetComponent<SpriteRenderer>().color = new Color(1f, 0.82f, 0.25f, 1f);
+        PrefabUtility.SaveAsPrefabAssetAndConnect(fast, $"{PrefabsRoot}/EnemyFast.prefab", InteractionMode.AutomatedAction);
+        UnityEngine.Object.DestroyImmediate(fast);
+
+        // Варіант аптечки CollectibleHealthBig: Amount = 2
+        var healthPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/CollectibleHealth.prefab");
+        var healthType = LoadScript("CollectibleHealth.cs").GetClass();
+        var big = (GameObject)PrefabUtility.InstantiatePrefab(healthPrefab);
+        var bigSo = new SerializedObject(big.GetComponent(healthType));
+        bigSo.FindProperty("amount").intValue = 2;
+        bigSo.ApplyModifiedPropertiesWithoutUndo();
+        PrefabUtility.SaveAsPrefabAssetAndConnect(big, $"{PrefabsRoot}/CollectibleHealthBig.prefab", InteractionMode.AutomatedAction);
+        UnityEngine.Object.DestroyImmediate(big);
+
+        // ── Крок 7: чистимо старі вороги/аптечки/зони і розставляємо за планом ──
+        foreach (var e in UnityEngine.Object.FindObjectsByType(enemyType, FindObjectsSortMode.None))
+            UnityEngine.Object.DestroyImmediate(((Component)e).gameObject);
+        foreach (var h in UnityEngine.Object.FindObjectsByType(healthType, FindObjectsSortMode.None))
+            UnityEngine.Object.DestroyImmediate(((Component)h).gameObject);
+        var zoneType = LoadScript("DamageZone.cs").GetClass();
+        foreach (var z in UnityEngine.Object.FindObjectsByType(zoneType, FindObjectsSortMode.None))
+            UnityEngine.Object.DestroyImmediate(((Component)z).gameObject);
+
+        var playerGO = GameObject.Find("PlayerCharacter");
+        if (playerGO == null) throw new Exception("PlayerCharacter not found");
+        playerGO.transform.position = new Vector3(-12f, -1f, 0f); // старт зліва
+
+        var npcGO = GameObject.Find("NPC");
+        if (npcGO != null) npcGO.transform.position = new Vector3(-10.5f, -1f, 0f);
+
+        // Вороги: по одному на ділянку + варіант
+        PlaceEnemy(enemyPrefab, new Vector3(-11.5f, -3f, 0f), 1f, false, 3f, false, "A: звичайний, горизонтальний патруль (ділянка 1)");
+        PlaceEnemy(enemyPrefab, new Vector3(3f, 0f, 0f), 1f, true, 3f, false, "B: звичайний, вертикальний (ділянка 2)");
+        PlaceEnemy(enemyPrefab, new Vector3(10.5f, -3f, 0f), 1f, true, 3f, false, "D: звичайний, вертикальний (ділянка 3)");
+        var fastPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/EnemyFast.prefab");
+        PlaceEnemy(fastPrefab, new Vector3(7.5f, 0f, 0f), 2f, false, 1.5f, false, "C: EnemyFast (ділянка 3)");
+
+        // Аптечки після небезпеки; зони шкоди — там, де можна обійти
+        InstantiateAt(healthPrefab, new Vector3(-6f, -3f, 0f));
+        var bigPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/CollectibleHealthBig.prefab");
+        InstantiateAt(bigPrefab, new Vector3(4f, 0f, 0f));
+        var zonePrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/DamageZone.prefab");
+        InstantiateAt(zonePrefab, new Vector3(-1f, -4f, 0f));
+        InstantiateAt(zonePrefab, new Vector3(0f, 1f, 0f));
+
+        // Декорації — на нові місця
+        MoveIfExists("Decoration_1", new Vector3(-9f, -1f, 0f));
+        MoveIfExists("Decoration_2", new Vector3(-4f, -4f, 0f));
+        MoveIfExists("Decoration_5", new Vector3(2f, 3f, 0f));
+        MoveIfExists("Decoration_6", new Vector3(9f, -1f, 0f));
+
+        // ── Крок 4: вода — перешкода внизу, що змушує обходити верхнім шляхом ──
+        var tilemap = GameObject.Find("Tilemap").GetComponent<Tilemap>();
+        var waterTile = AssetDatabase.LoadAssetAtPath<TileBase>("Assets/_2DAdventureGame/Art/Tiles/FloorWaterRoundCorners_4.asset");
+        if (waterTile == null) throw new Exception("Water tile not found");
+        tilemap.SetTile(new Vector3Int(0, -3, 0), waterTile);
+        tilemap.SetTile(new Vector3Int(0, -4, 0), waterTile);
+
+        // ── Камера, що йде за роботом (туторіал юніта 6: Follow 2D Camera і Confiner) ──
+        var camGO = GameObject.Find("Main Camera");
+        var brainType = FindCinemachineType("CinemachineBrain");
+        if (camGO.GetComponent(brainType) == null) camGO.AddComponent(brainType);
+
+        var confinerGO = GameObject.Find("Camera Confiner");
+        if (confinerGO == null) confinerGO = new GameObject("Camera Confiner");
+        var box = confinerGO.GetComponent<BoxCollider2D>();
+        if (box == null) box = confinerGO.AddComponent<BoxCollider2D>();
+        box.isTrigger = true;
+        box.offset = new Vector2(0f, -0.5f);
+        box.size = new Vector2(26f, 11f);
+
+        var followGO = GameObject.Find("2D Follow Camera");
+        if (followGO == null) followGO = new GameObject("2D Follow Camera");
+        var cameraType = FindCinemachineType("CinemachineCamera");
+        var vcam = followGO.GetComponent(cameraType);
+        if (vcam == null) vcam = followGO.AddComponent(cameraType);
+        followGO.transform.position = new Vector3(-12f, -1f, -10f);
+
+        var composerType = FindCinemachineType("CinemachinePositionComposer");
+        if (followGO.GetComponent(composerType) == null) followGO.AddComponent(composerType);
+        var confinerType = FindCinemachineType("CinemachineConfiner2D");
+        var cmConfiner = followGO.GetComponent(confinerType);
+        if (cmConfiner == null) cmConfiner = followGO.AddComponent(confinerType);
+        var cso = new SerializedObject(cmConfiner);
+        var shape = cso.FindProperty("BoundingShape2D");
+        if (shape == null) throw new Exception("BoundingShape2D property not found");
+        shape.objectReferenceValue = box;
+        cso.ApplyModifiedPropertiesWithoutUndo();
+
+        var vso = new SerializedObject(vcam);
+        var targetProp = vso.FindProperty("Target.TrackingTarget");
+        if (targetProp == null) targetProp = vso.FindProperty("m_Target.TrackingTarget");
+        if (targetProp == null) throw new Exception("TrackingTarget property not found");
+        targetProp.objectReferenceValue = playerGO.transform;
+        vso.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("LAB7 STEP1 OK: MyLevel, variants, placements, water, follow camera");
+    }
+
+    static void PlaceEnemy(GameObject prefab, Vector3 pos, float speed, bool vertical, float changeTime, bool randomAxis, string label)
+    {
+        var e = (GameObject)PrefabUtility.InstantiatePrefab(prefab, EditorSceneManager.GetActiveScene());
+        e.transform.position = pos;
+        var so = new SerializedObject(e.GetComponent(LoadScript("EnemyController.cs").GetClass()));
+        so.FindProperty("speed").floatValue = speed;
+        so.FindProperty("vertical").boolValue = vertical;
+        so.FindProperty("changeTime").floatValue = changeTime;
+        so.FindProperty("randomAxis").boolValue = randomAxis;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        Debug.Log("PLACED " + label + " at " + pos);
+    }
+
+    static void InstantiateAt(GameObject prefab, Vector3 pos)
+    {
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, EditorSceneManager.GetActiveScene());
+        go.transform.position = pos;
+    }
+
+    static void MoveIfExists(string name, Vector3 pos)
+    {
+        var go = GameObject.Find(name);
+        if (go != null) go.transform.position = pos;
+    }
+
     // ─────────────────────────── ЛАБОРАТОРНА 6 ───────────────────────────
 
     // Кроки 1-4: UI Document, Panel Settings, об'єкт UIDocument на сцені з UIHandler
