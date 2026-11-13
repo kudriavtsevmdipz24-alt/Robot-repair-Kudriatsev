@@ -21,13 +21,23 @@ public class PlayerController : MonoBehaviour
     bool isInvincible;
     float damageCooldown;
 
+    // Анімація: напрям погляду пам'ятається, щоб стоячи не обертатися «до глядача»
+    Animator animator;
+    Vector2 moveDirection = new Vector2(1, 0);
+
+    // Снаряд і кнопка пострілу (C)
+    public GameObject projectilePrefab;
+    public InputAction LaunchAction;
+
     void Start()
     {
         // Вмикаємо зчитування вводу
         MoveAction.Enable();
+        LaunchAction.Enable();
 
-        // Отримуємо посилання на Rigidbody2D
+        // Отримуємо посилання на компоненти
         rigidbody2d = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
 
         // Встановлюємо початкове здоров'я на максимум
         currentHealth = maxHealth;
@@ -38,6 +48,18 @@ public class PlayerController : MonoBehaviour
         // Читаємо вектор руху від гравця
         move = MoveAction.ReadValue<Vector2>();
 
+        // Якщо робот рухається — запам'ятовуємо напрям погляду
+        if (!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
+        {
+            moveDirection.Set(move.x, move.y);
+            moveDirection.Normalize();
+        }
+
+        // Передаємо напрям і швидкість в аніматор (Blend Tree глядає за поглядом)
+        animator.SetFloat("Look X", moveDirection.x);
+        animator.SetFloat("Look Y", moveDirection.y);
+        animator.SetFloat("Speed", move.magnitude);
+
         // Відлік таймера невразливості
         if (isInvincible)
         {
@@ -46,6 +68,12 @@ public class PlayerController : MonoBehaviour
             {
                 isInvincible = false;
             }
+        }
+
+        // Постріл за клавішею C
+        if (LaunchAction.WasPressedThisFrame())
+        {
+            Launch();
         }
     }
 
@@ -68,6 +96,7 @@ public class PlayerController : MonoBehaviour
             }
             isInvincible = true;
             damageCooldown = timeInvincible;
+            animator.SetTrigger("Hit"); // анімація отриманого удару
         }
 
         // Обмежуємо значення здоров'я від 0 до maxHealth
@@ -75,5 +104,18 @@ public class PlayerController : MonoBehaviour
 
         // Виводимо поточний стан у консоль Unity
         Debug.Log(currentHealth + "/" + maxHealth);
+    }
+
+    // Постріл: створюємо снаряд перед роботом і штовхаємо його в напрямку погляду
+    void Launch()
+    {
+        GameObject projectileObject = Instantiate(projectilePrefab,
+            rigidbody2d.position + Vector2.up * 0.5f,
+            Quaternion.identity);
+
+        Projectile projectile = projectileObject.GetComponent<Projectile>();
+        projectile.Launch(moveDirection, 300);
+
+        animator.SetTrigger("Launch");
     }
 }
