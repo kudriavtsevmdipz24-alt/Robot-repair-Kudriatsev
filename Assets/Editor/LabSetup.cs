@@ -500,10 +500,10 @@ public static class LabSetup
 
         // Вороги: по одному на ділянку + варіант
         PlaceEnemy(enemyPrefab, new Vector3(-11.5f, -3f, 0f), 1f, false, 3f, false, "A: звичайний, горизонтальний патруль (ділянка 1)");
-        PlaceEnemy(enemyPrefab, new Vector3(3f, 0f, 0f), 1f, true, 3f, false, "B: звичайний, вертикальний (ділянка 2)");
-        PlaceEnemy(enemyPrefab, new Vector3(10.5f, -3f, 0f), 1f, true, 3f, false, "D: звичайний, вертикальний (ділянка 3)");
+        PlaceEnemy(enemyPrefab, new Vector3(2.5f, 0f, 0f), 1f, true, 2.5f, false, "B: звичайний, вертикальний (ділянка 2)");
+        PlaceEnemy(enemyPrefab, new Vector3(8.5f, -2f, 0f), 1f, false, 2.5f, false, "D: звичайний, горизонтальний (ділянка 3)");
         var fastPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/EnemyFast.prefab");
-        PlaceEnemy(fastPrefab, new Vector3(7.5f, 0f, 0f), 2f, false, 1.5f, false, "C: EnemyFast (ділянка 3)");
+        PlaceEnemy(fastPrefab, new Vector3(6.5f, 0f, 0f), 1.6f, false, 2f, false, "C: EnemyFast (ділянка 3)");
 
         // Аптечки після небезпеки; зони шкоди — там, де можна обійти
         InstantiateAt(healthPrefab, new Vector3(-6f, -3f, 0f));
