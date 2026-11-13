@@ -85,5 +85,11 @@ public class EnemyController : MonoBehaviour
         broken = false;
         rigidbody2d.simulated = false;
         animator.SetTrigger("Fixed");
+
+        // ДЗ юніта 5: оновлюємо лічильник полагоджених у HUD
+        if (UIHandler.instance != null)
+        {
+            UIHandler.instance.OnEnemyFixed();
+        }
     }
 }
