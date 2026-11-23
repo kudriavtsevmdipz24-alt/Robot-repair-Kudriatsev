@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour
     // Діалог: кнопка X і промінь, який шукає NPC
     public InputAction TalkAction;
     private NonPlayerCharacter lastNonPlayerCharacter;
+    private const float talkDistance = 2.0f;
 
     void Start()
     {
@@ -86,7 +87,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // Постріл за клавішею C — але не частіше, ніж дозволяє shootCooldown
-        if (LaunchAction.WasPressedThisFrame() && shootTimer <= 0)
+        if (WasLaunchPressedThisFrame() && shootTimer <= 0)
         {
             Launch();
             shootTimer = shootCooldown;
@@ -101,9 +102,11 @@ public class PlayerController : MonoBehaviour
         {
             // Промінь влучив — показуємо бульбашку з X цього NPC і запам'ятовуємо його
             NonPlayerCharacter npc = hit.collider.GetComponent<NonPlayerCharacter>();
-            npc.dialogueBubble.SetActive(true);
-            lastNonPlayerCharacter = npc;
-            FindFriend();
+            if (npc != null)
+            {
+                npc.dialogueBubble.SetActive(true);
+                lastNonPlayerCharacter = npc;
+            }
         }
         else
         {
@@ -114,6 +117,8 @@ public class PlayerController : MonoBehaviour
                 lastNonPlayerCharacter = null;
             }
         }
+
+        FindFriend();
     }
 
     void FixedUpdate()
@@ -161,9 +166,35 @@ public class PlayerController : MonoBehaviour
     // X: показати репліку NPC, якщо робот дивиться на нього
     void FindFriend()
     {
-        if (TalkAction.WasPressedThisFrame())
+        if (!WasTalkPressedThisFrame())
+        {
+            return;
+        }
+
+        if (lastNonPlayerCharacter == null)
+        {
+            return;
+        }
+
+        // Підстраховка: діалог працює лише коли NPC реально поруч
+        float distance = Vector2.Distance(rigidbody2d.position, lastNonPlayerCharacter.transform.position);
+        if (distance <= talkDistance && UIHandler.instance != null)
         {
             UIHandler.instance.DisplayDialogue();
         }
+    }
+
+    bool WasLaunchPressedThisFrame()
+    {
+        bool actionPressed = LaunchAction.WasPressedThisFrame();
+        bool fallbackPressed = Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame;
+        return actionPressed || fallbackPressed;
+    }
+
+    bool WasTalkPressedThisFrame()
+    {
+        bool actionPressed = TalkAction.WasPressedThisFrame();
+        bool fallbackPressed = Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame;
+        return actionPressed || fallbackPressed;
     }
 }
