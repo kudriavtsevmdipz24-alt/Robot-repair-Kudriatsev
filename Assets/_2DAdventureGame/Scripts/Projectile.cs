@@ -4,6 +4,7 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
     Rigidbody2D rigidbody2d;
+    bool spent;
 
     // Awake, а не Start: PlayerController викликає Launch одразу після Instantiate,
     // тож посилання на Rigidbody2D має бути готове вже тут.
@@ -30,21 +31,19 @@ public class Projectile : MonoBehaviour
     // Влучання у тригер (ворог — тригер; стіни теж повідомляються, бо колайдер снаряда — тригер)
     void OnTriggerEnter2D(Collider2D other)
     {
-        // Не знищуємо снаряд об гравця або інший снаряд у момент спавну.
-        if (other.GetComponent<PlayerController>() != null || other.GetComponent<Projectile>() != null)
+        if (spent || other.GetComponentInParent<PlayerController>() != null)
         {
             return;
         }
 
-        EnemyController enemy = other.GetComponent<EnemyController>();
-        if (enemy == null)
+        EnemyController enemy = other.GetComponentInParent<EnemyController>();
+        if (enemy == null && other.isTrigger)
         {
-            enemy = other.GetComponentInParent<EnemyController>();
+            return;
         }
-        if (enemy != null)
-        {
-            enemy.Fix();
-        }
+
+        spent = true;
+        enemy?.Fix();
         Destroy(gameObject);
     }
 

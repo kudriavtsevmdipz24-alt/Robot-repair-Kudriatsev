@@ -94,7 +94,7 @@ public class EnemyController : MonoBehaviour
     void OnTriggerEnter2D(Collider2D other)
     {
         PlayerController player = other.gameObject.GetComponent<PlayerController>();
-        if (player != null)
+        if (broken && player != null)
         {
             player.ChangeHealth(-1);
         }
@@ -103,6 +103,11 @@ public class EnemyController : MonoBehaviour
     // Полагодити ворога: викликає снаряд
     public void Fix()
     {
+        if (!broken)
+        {
+            return;
+        }
+
         broken = false;
         rigidbody2d.simulated = false;
         animator.SetTrigger("Fixed");
