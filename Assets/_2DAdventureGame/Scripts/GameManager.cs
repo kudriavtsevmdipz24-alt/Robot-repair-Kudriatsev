@@ -35,20 +35,27 @@ public class GameManager : MonoBehaviour
         {
             uiHandler.DisplayLoseScreen();
             gameOver = true;
-            Invoke(nameof(ReloadScene), 3f);
+            player.enabled = false;
+            Invoke(nameof(ReloadScene), 4f);
         }
 
         // Перемога: усі вороги полагоджені
-        if (AllEnemiesFixed())
+        else if (AllEnemiesFixed())
         {
             uiHandler.DisplayWinScreen();
             gameOver = true;
-            Invoke(nameof(ReloadScene), 3f);
+            player.enabled = false;
+            Invoke(nameof(ReloadScene), 4f);
         }
     }
 
     bool AllEnemiesFixed()
     {
+        if (enemies.Length == 0)
+        {
+            return false;
+        }
+
         foreach (EnemyController enemy in enemies)
         {
             if (enemy.isBroken)

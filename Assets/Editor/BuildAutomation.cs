@@ -7,19 +7,16 @@ using UnityEngine;
 
 public static class BuildAutomation
 {
-    // Запуск (Windows):
-    // Unity.exe -batchmode -quit -projectPath C:\Users\MAX\Desktop\labs\gamedis -executeMethod BuildAutomation.BuildWindowsRelease
     public static void BuildWindowsRelease()
     {
-        const string exeName = "Robot Repair - Flood Run.exe";
-        const string version = "1.0.3";
-
         string projectRoot = Directory.GetParent(Application.dataPath)!.FullName;
-        string labsRoot = Directory.GetParent(projectRoot)!.FullName;
-        string outputDir = Path.Combine(labsRoot, "Builds", $"RobotRepair-FloodRun-v{version}-Windows");
-
-        Directory.CreateDirectory(outputDir);
-        string outputPath = Path.Combine(outputDir, exeName);
+        string version = PlayerSettings.bundleVersion;
+        string[] args = Environment.GetCommandLineArgs();
+        int outputArg = Array.IndexOf(args, "-buildOutput");
+        string outputPath = outputArg >= 0 && outputArg + 1 < args.Length
+            ? Path.GetFullPath(args[outputArg + 1], projectRoot)
+            : Path.Combine(projectRoot, "Builds", $"robot-repair-timed-gate-v{version}-windows", $"{PlayerSettings.productName}.exe");
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
         string[] scenes = EditorBuildSettings.scenes
             .Where(s => s.enabled)
