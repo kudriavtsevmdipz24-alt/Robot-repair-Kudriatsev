@@ -15,6 +15,9 @@ public static class Lab89Setup
 
     const string RisingWaterPrefabPath = PrefabsRoot + "/RisingWater.prefab";
     const string RisingWaterFastPrefabPath = PrefabsRoot + "/RisingWaterFast.prefab";
+    const string TimedDoorPrefabPath = PrefabsRoot + "/TimedDoor.prefab";
+    const string TimedSwitchPrefabPath = PrefabsRoot + "/TimedSwitch.prefab";
+    const string EnemyBuffedPrefabPath = PrefabsRoot + "/EnemyBuffed.prefab";
 
     static Type LoadScriptType(string scriptPath)
     {
@@ -70,6 +73,55 @@ public static class Lab89Setup
         Debug.Log("LAB8 OK: RisingWater twist prefab + variant + MyLevel placement");
     }
 
+    // Альтернативний твіст для лабораторної 8:
+    // плита відкриває двері на час, за якими стоїть посилений ворог.
+    public static void Lab8_Step2_TimedDoorTwist()
+    {
+        var scene = EditorSceneManager.OpenScene(MyLevelPath);
+
+        var risingType = LoadScriptType("Assets/_2DAdventureGame/Scripts/RisingWater.cs");
+        foreach (var go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None)
+                     .Where(obj => obj.GetComponent(risingType) != null))
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        DestroyIfExists("TimedDoor");
+        DestroyIfExists("TimedSwitchPlate");
+        DestroyIfExists("EnemyBuffedGate");
+
+        var doorPrefab = EnsureTimedDoorPrefab();
+        var switchPrefab = EnsureTimedSwitchPrefab();
+        var enemyBuffedPrefab = EnsureEnemyBuffedPrefab();
+
+        var door = (GameObject)PrefabUtility.InstantiatePrefab(doorPrefab, scene);
+        door.name = "TimedDoor";
+        door.transform.position = new Vector3(5.1f, -0.95f, 0f);
+        door.transform.localScale = new Vector3(0.27f, 0.27f, 1f);
+
+        var plate = (GameObject)PrefabUtility.InstantiatePrefab(switchPrefab, scene);
+        plate.name = "TimedSwitchPlate";
+        plate.transform.position = new Vector3(0.1f, -1.15f, 0f);
+        plate.transform.localScale = new Vector3(1.0f, 1.0f, 1f);
+
+        var timedSwitchType = LoadScriptType("Assets/_2DAdventureGame/Scripts/TimedSwitch.cs");
+        var timedSwitch = plate.GetComponent(timedSwitchType);
+        var tsSo = new SerializedObject(timedSwitch);
+        tsSo.FindProperty("door").objectReferenceValue = door;
+        tsSo.FindProperty("openTime").floatValue = 4.5f;
+        tsSo.ApplyModifiedPropertiesWithoutUndo();
+
+        var buffedEnemy = (GameObject)PrefabUtility.InstantiatePrefab(enemyBuffedPrefab, scene);
+        buffedEnemy.name = "EnemyBuffedGate";
+        buffedEnemy.transform.position = new Vector3(9.0f, -0.9f, 0f);
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("LAB8 OK: TimedSwitch + door + buffed enemy placed");
+    }
+
     // Лабораторна 9: аудіо-фідбек, стартова сцена, build settings і параметри вікна.
     public static void Lab9_Step1_PolishSetup()
     {
@@ -82,6 +134,58 @@ public static class Lab89Setup
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("LAB9 OK: polish setup done (audio, start screen, build scenes, player settings)");
+    }
+
+    // Фікс для статичної камери: вмикаємо пряме слідування за гравцем.
+    public static void Lab9_Step2_CameraFollowFix()
+    {
+        var scene = EditorSceneManager.OpenScene(MyLevelPath);
+        var player = GameObject.Find("PlayerCharacter");
+        var mainCamera = GameObject.Find("Main Camera");
+        if (player == null || mainCamera == null)
+        {
+            throw new Exception("PlayerCharacter or Main Camera not found in MyLevel");
+        }
+
+        // Щоб не було конфлікту, вимикаємо cinemachine-логіку для камери в цій сцені.
+        foreach (var mb in mainCamera.GetComponents<MonoBehaviour>())
+        {
+            if (mb != null && mb.GetType().FullName.Contains("CinemachineBrain"))
+            {
+                mb.enabled = false;
+            }
+        }
+
+        var virtualCamera = GameObject.Find("2D Follow Camera");
+        if (virtualCamera != null)
+        {
+            virtualCamera.SetActive(false);
+        }
+
+        var cameraFollowType = LoadScriptType("Assets/_2DAdventureGame/Scripts/CameraFollow2D.cs");
+        var follow = mainCamera.GetComponent(cameraFollowType);
+        if (follow == null)
+        {
+            follow = mainCamera.AddComponent(cameraFollowType);
+        }
+
+        var so = new SerializedObject(follow);
+        so.FindProperty("target").objectReferenceValue = player.transform;
+        so.FindProperty("smoothSpeed").floatValue = 7.0f;
+        so.FindProperty("offset").vector3Value = new Vector3(0f, 0f, -10f);
+        so.FindProperty("minBounds").vector2Value = new Vector2(-11.0f, -2.6f);
+        so.FindProperty("maxBounds").vector2Value = new Vector2(10.4f, 1.9f);
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        var cameraComponent = mainCamera.GetComponent<Camera>();
+        cameraComponent.orthographic = true;
+        cameraComponent.orthographicSize = 4.4f;
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("LAB9 OK: camera follow fix applied");
     }
 
     static void ConfigurePlayerAudio()
@@ -190,6 +294,115 @@ public static class Lab89Setup
         PlayerSettings.defaultScreenWidth = 1280;
         PlayerSettings.defaultScreenHeight = 720;
         PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+    }
+
+    static void DestroyIfExists(string objectName)
+    {
+        var go = GameObject.Find(objectName);
+        if (go != null)
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+    }
+
+    static GameObject EnsureTimedDoorPrefab()
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(TimedDoorPrefabPath);
+        if (prefab != null)
+        {
+            return prefab;
+        }
+
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_2DAdventureGame/Art/Ducko/Environmnent/Decoration_3.png");
+        if (sprite == null)
+        {
+            throw new Exception("Decoration_3 sprite not found for TimedDoor");
+        }
+
+        var door = new GameObject("TimedDoor");
+        var sr = door.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;
+        sr.sortingOrder = 2;
+
+        var collider = door.AddComponent<BoxCollider2D>();
+        collider.isTrigger = false;
+        var size = sprite.bounds.size;
+        collider.size = new Vector2(size.x * 0.6f, size.y * 0.24f);
+        collider.offset = new Vector2(0f, size.y * 0.08f);
+
+        var created = PrefabUtility.SaveAsPrefabAsset(door, TimedDoorPrefabPath);
+        UnityEngine.Object.DestroyImmediate(door);
+        return created;
+    }
+
+    static GameObject EnsureTimedSwitchPrefab()
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(TimedSwitchPrefabPath);
+        if (prefab != null)
+        {
+            return prefab;
+        }
+
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_2DAdventureGame/Art/Ducko/Environmnent/Decoration_1.png");
+        if (sprite == null)
+        {
+            throw new Exception("Decoration_1 sprite not found for TimedSwitch");
+        }
+
+        var plate = new GameObject("TimedSwitch");
+        var sr = plate.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;
+        sr.color = new Color(1f, 0.92f, 0.65f, 1f);
+        sr.sortingOrder = 1;
+
+        var collider = plate.AddComponent<BoxCollider2D>();
+        collider.isTrigger = true;
+        var size = sprite.bounds.size;
+        collider.size = new Vector2(size.x * 0.75f, size.y * 0.45f);
+        collider.offset = new Vector2(0f, size.y * 0.1f);
+
+        var timedSwitchType = LoadScriptType("Assets/_2DAdventureGame/Scripts/TimedSwitch.cs");
+        plate.AddComponent(timedSwitchType);
+
+        var created = PrefabUtility.SaveAsPrefabAsset(plate, TimedSwitchPrefabPath);
+        UnityEngine.Object.DestroyImmediate(plate);
+        return created;
+    }
+
+    static GameObject EnsureEnemyBuffedPrefab()
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyBuffedPrefabPath);
+        if (prefab != null)
+        {
+            return prefab;
+        }
+
+        var baseEnemy = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/EnemyFast.prefab")
+                       ?? AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/Enemy.prefab");
+        if (baseEnemy == null)
+        {
+            throw new Exception("Enemy base prefab not found");
+        }
+
+        var enemy = (GameObject)PrefabUtility.InstantiatePrefab(baseEnemy);
+        enemy.name = "EnemyBuffed";
+        var controller = enemy.GetComponent("EnemyController");
+        var so = new SerializedObject(controller);
+        so.FindProperty("speed").floatValue = 2.6f;
+        so.FindProperty("changeTime").floatValue = 1.2f;
+        so.FindProperty("vertical").boolValue = false;
+        so.FindProperty("randomAxis").boolValue = false;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        var sr = enemy.GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.color = new Color(1f, 0.45f, 0.25f, 1f);
+        }
+
+        var created = PrefabUtility.SaveAsPrefabAssetAndConnect(enemy, EnemyBuffedPrefabPath, InteractionMode.AutomatedAction);
+        UnityEngine.Object.DestroyImmediate(enemy);
+        return created;
     }
 
     static GameObject EnsureRisingWaterPrefab(Type risingType, string path, float riseSpeed, float maxHeight, int damage, Color tint, GameObject variantParent = null)
