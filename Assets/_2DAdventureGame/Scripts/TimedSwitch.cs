@@ -1,56 +1,67 @@
-using System.Collections;
 using UnityEngine;
 
-// Твіст: натискаємо плиту, двері відкриваються на кілька секунд.
+[RequireComponent(typeof(BoxCollider2D), typeof(SpriteRenderer))]
 public class TimedSwitch : MonoBehaviour
 {
     public GameObject door;
-    public float openTime = 4.0f;
+    [Min(0.1f)] public float openTime = 3.5f;
+    [SerializeField] Color activeColor = new Color(0.35f, 0.95f, 0.65f);
+
+    SpriteRenderer plate;
+    Color idleColor;
+    float closesAt;
+    bool isOpen;
+
+    void Awake()
+    {
+        plate = GetComponent<SpriteRenderer>();
+        idleColor = plate.color;
+        SetDoorOpen(false);
+    }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.GetComponent<PlayerController>() == null)
+        if (!isActiveAndEnabled || door == null || other.isTrigger ||
+            !other.TryGetComponent(out PlayerController player) || player.health <= 0)
         {
             return;
         }
 
-        if (door == null)
-        {
-            return;
-        }
-
-        StopAllCoroutines();
-        StartCoroutine(OpenDoorFor(openTime));
+        closesAt = Time.time + openTime;
+        SetDoorOpen(true);
     }
 
-    IEnumerator OpenDoorFor(float seconds)
+    void Update()
     {
-        SetDoorOpen(true);
-        yield return new WaitForSeconds(seconds);
-        if (door != null)
+        if (!isOpen)
+        {
+            return;
+        }
+
+        float remaining = Mathf.Max(0f, closesAt - Time.time);
+        UIHandler.instance?.SetDoorTime(remaining, openTime);
+        if (remaining == 0f)
         {
             SetDoorOpen(false);
         }
     }
 
-    // Відкриваємо лише «середній сегмент» стіни — бічні блоки лишаються.
+    void OnDisable()
+    {
+        if (isOpen)
+        {
+            SetDoorOpen(false);
+            UIHandler.instance?.SetDoorTime(0f, openTime);
+        }
+    }
+
     void SetDoorOpen(bool open)
     {
-        if (door == null)
+        isOpen = open;
+        plate.color = open ? activeColor : idleColor;
+        if (door != null)
         {
-            return;
-        }
-
-        door.SetActive(true);
-        foreach (var col in door.GetComponentsInChildren<Collider2D>(true))
-        {
-            col.enabled = !open;
-        }
-
-        var renderer = door.GetComponent<SpriteRenderer>();
-        if (renderer != null)
-        {
-            renderer.enabled = !open;
+            door.SetActive(!open);
         }
     }
 }

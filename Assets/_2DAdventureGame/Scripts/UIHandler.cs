@@ -15,6 +15,9 @@ public class UIHandler : MonoBehaviour
     private VisualElement m_Healthbar;
     private VisualElement m_WinScreen;
     private VisualElement m_LoseScreen;
+    private VisualElement m_DoorTimer;
+    private Label m_DoorTimerText;
+    private VisualElement m_DoorTimerFill;
 
     // ДЗ юніта 5: лічильник «Полагоджено N / M» у HUD
     private Label m_FixedCounter;
@@ -24,6 +27,14 @@ public class UIHandler : MonoBehaviour
     private void Awake()
     {
         instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this)
+        {
+            instance = null;
+        }
     }
 
     void Start()
@@ -48,6 +59,9 @@ public class UIHandler : MonoBehaviour
 
         m_LoseScreen = root.Q<VisualElement>("LoseScreenContainer");
         m_WinScreen = root.Q<VisualElement>("WinScreenContainer");
+        m_DoorTimer = root.Q("DoorTimer");
+        m_DoorTimerText = root.Q<Label>("DoorTimerText");
+        m_DoorTimerFill = root.Q("DoorTimerFill");
 
         // Лічильник полагоджених: загальна кількість ворогів відома на старті сцени
         m_FixedCounter = root.Q<Label>("FixedCounter");
@@ -61,13 +75,25 @@ public class UIHandler : MonoBehaviour
         m_Healthbar.style.width = Length.Percent(100 * percentage);
     }
 
+    public void SetDoorTime(float remaining, float duration)
+    {
+        if (m_DoorTimer == null)
+        {
+            return;
+        }
+
+        m_DoorTimer.style.display = remaining > 0f ? DisplayStyle.Flex : DisplayStyle.None;
+        m_DoorTimerText.text = $"Двері відчинені · {Mathf.CeilToInt(remaining)} с";
+        m_DoorTimerFill.style.width = Length.Percent(duration > 0f ? 100f * Mathf.Clamp01(remaining / duration) : 0f);
+    }
+
     private void Update()
     {
         // Таймер показу репліки: коли скінчився — ховаємо вікно
         if (m_TimerDisplay > 0)
         {
             m_TimerDisplay -= Time.deltaTime;
-            if (m_TimerDisplay < 0)
+            if (m_TimerDisplay <= 0)
             {
                 m_NonPlayerDialogue.style.display = DisplayStyle.None;
             }

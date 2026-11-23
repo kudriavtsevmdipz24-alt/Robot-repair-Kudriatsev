@@ -74,8 +74,7 @@ public static class Lab89Setup
         Debug.Log("LAB8 OK: RisingWater twist prefab + variant + MyLevel placement");
     }
 
-    // Альтернативний твіст для лабораторної 8:
-    // плита відкриває двері на час, за якими стоїть посилений ворог.
+    // Лабораторна 8: плита відкриває короткий прохід крізь стіну.
     public static void Lab8_Step2_TimedDoorTwist()
     {
         var scene = EditorSceneManager.OpenScene(MyLevelPath);
@@ -87,34 +86,8 @@ public static class Lab89Setup
             UnityEngine.Object.DestroyImmediate(go);
         }
 
-        DestroyIfExists("TimedDoor");
-        DestroyIfExists("TimedSwitchPlate");
-        DestroyIfExists("EnemyBuffedGate");
-
-        var doorPrefab = EnsureTimedDoorPrefab();
-        var switchPrefab = EnsureTimedSwitchPrefab();
-        var enemyBuffedPrefab = EnsureEnemyBuffedPrefab();
-
-        var door = (GameObject)PrefabUtility.InstantiatePrefab(doorPrefab, scene);
-        door.name = "TimedDoor";
-        door.transform.position = new Vector3(5.1f, -0.95f, 0f);
-        door.transform.localScale = new Vector3(0.27f, 0.27f, 1f);
-
-        var plate = (GameObject)PrefabUtility.InstantiatePrefab(switchPrefab, scene);
-        plate.name = "TimedSwitchPlate";
-        plate.transform.position = new Vector3(0.1f, -1.15f, 0f);
-        plate.transform.localScale = new Vector3(1.0f, 1.0f, 1f);
-
-        var timedSwitchType = LoadScriptType("Assets/_2DAdventureGame/Scripts/TimedSwitch.cs");
-        var timedSwitch = plate.GetComponent(timedSwitchType);
-        var tsSo = new SerializedObject(timedSwitch);
-        tsSo.FindProperty("door").objectReferenceValue = door;
-        tsSo.FindProperty("openTime").floatValue = 4.5f;
-        tsSo.ApplyModifiedPropertiesWithoutUndo();
-
-        var buffedEnemy = (GameObject)PrefabUtility.InstantiatePrefab(enemyBuffedPrefab, scene);
-        buffedEnemy.name = "EnemyBuffedGate";
-        buffedEnemy.transform.position = new Vector3(9.0f, -0.9f, 0f);
+        PlaceRightGateWithButton(scene);
+        ConfigureGateRoutes(scene);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -200,6 +173,7 @@ public static class Lab89Setup
         EnsurePlayerProjectileOnScene();
         BeautifyTilemap();
         PlaceRightGateWithButton(scene);
+        ConfigureGateRoutes(scene);
         RetuneEnemiesInScene(scene);
         ExpandCameraAndConfiner();
 
@@ -376,43 +350,70 @@ public static class Lab89Setup
         DestroyIfExists("EnemyBuffedGate");
         DestroyIfExists("GateWall_Left");
         DestroyIfExists("GateWall_Right");
+        DestroyIfExists("GateWall_North");
+        DestroyIfExists("GateWall_South");
         DestroyIfExists("GateDoorCenter");
 
         var switchPrefab = RefreshTimedSwitchPrefabVisual();
         var enemyBuffedPrefab = EnsureEnemyBuffedPrefab();
         var enemyType = LoadScriptType("Assets/_2DAdventureGame/Scripts/EnemyController.cs");
 
-        var wallTint = new Color(0.73f, 0.65f, 0.54f, 1f);
-        var wallLeft = CreateSolidWallSegment("GateWall_Left", new Vector3(4.05f, -0.35f, 0f), new Vector2(1.45f, 2.9f), wallTint);
-        var wallRight = CreateSolidWallSegment("GateWall_Right", new Vector3(5.85f, -0.35f, 0f), new Vector2(1.45f, 2.9f), wallTint);
-        var doorCenter = CreateSolidWallSegment("GateDoorCenter", new Vector3(4.95f, -0.15f, 0f), new Vector2(0.95f, 1.2f), new Color(0.58f, 0.52f, 0.44f, 1f));
+        var wallTint = new Color(0.67f, 0.72f, 0.76f);
+        CreateSolidWallSegment("GateWall_South", new Vector3(5.15f, -4.3f, 0f), new Vector2(0.9f, 3.6f), wallTint);
+        CreateSolidWallSegment("GateWall_North", new Vector3(5.15f, 0.575f, 0f), new Vector2(0.9f, 2.75f), wallTint);
+        var doorCenter = CreateSolidWallSegment("GateDoorCenter", new Vector3(5.15f, -1.65f, 0f), new Vector2(0.9f, 1.7f), new Color(1f, 0.63f, 0.22f));
 
         var plate = (GameObject)PrefabUtility.InstantiatePrefab(switchPrefab, scene);
         plate.name = "TimedSwitchPlate";
-        plate.transform.position = new Vector3(2.7f, -1.25f, 0f);
-        plate.transform.localScale = new Vector3(0.85f, 0.85f, 1f);
+        plate.transform.position = new Vector3(-0.7f, -1.65f, 0f);
 
         var timedSwitchType = LoadScriptType("Assets/_2DAdventureGame/Scripts/TimedSwitch.cs");
         var timedSwitch = plate.GetComponent(timedSwitchType);
         var tsSo = new SerializedObject(timedSwitch);
         tsSo.FindProperty("door").objectReferenceValue = doorCenter;
-        tsSo.FindProperty("openTime").floatValue = 5.0f;
         tsSo.ApplyModifiedPropertiesWithoutUndo();
 
         var buffedEnemy = (GameObject)PrefabUtility.InstantiatePrefab(enemyBuffedPrefab, scene);
         buffedEnemy.name = "EnemyBuffedGate";
-        buffedEnemy.transform.position = new Vector3(9.2f, -0.8f, 0f);
+        buffedEnemy.transform.position = new Vector3(8.6f, -1.1f, 0f);
 
         var buffedController = buffedEnemy.GetComponent(enemyType);
         if (buffedController != null)
         {
             var bso = new SerializedObject(buffedController);
-            bso.FindProperty("speed").floatValue = 0.9f;
-            bso.FindProperty("changeTime").floatValue = 3.5f;
-            bso.FindProperty("vertical").boolValue = false;
-            bso.FindProperty("minPatrolRange").floatValue = 2.0f;
+            bso.FindProperty("randomAxis").boolValue = false;
             bso.ApplyModifiedPropertiesWithoutUndo();
         }
+    }
+
+    static void ConfigureGateRoutes(UnityEngine.SceneManagement.Scene scene)
+    {
+        var damagePrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/DamageZone.prefab");
+        foreach (var zone in UnityEngine.Object.FindObjectsByType<DamageZone>(FindObjectsSortMode.None))
+        {
+            UnityEngine.Object.DestroyImmediate(zone.gameObject);
+        }
+
+        PlaceDamageZone(damagePrefab, scene, "DamageZone_Practice", new Vector2(-1f, -4f), Vector2.one);
+        PlaceDamageZone(damagePrefab, scene, "DamageZone_Bypass", new Vector2(5.15f, 2.95f), new Vector2(1.05f, 1f));
+        GameObject.Find("CollectibleHealthBig").transform.position = new Vector3(3.4f, 0.6f, 0f);
+
+        DestroyIfExists("LevelBounds");
+        var bounds = new GameObject("LevelBounds");
+        var edge = bounds.AddComponent<EdgeCollider2D>();
+        edge.points = new[]
+        {
+            new Vector2(-13.9f, -5.35f), new Vector2(13.9f, -5.35f),
+            new Vector2(13.9f, 4f), new Vector2(-13.9f, 4f), new Vector2(-13.9f, -5.35f)
+        };
+    }
+
+    static void PlaceDamageZone(GameObject prefab, UnityEngine.SceneManagement.Scene scene, string name, Vector2 position, Vector2 scale)
+    {
+        var zone = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+        zone.name = name;
+        zone.transform.position = position;
+        zone.transform.localScale = new Vector3(scale.x, scale.y, 1f);
     }
 
     static GameObject CreateSolidWallSegment(string name, Vector3 position, Vector2 size, Color tint)
@@ -468,6 +469,8 @@ public static class Lab89Setup
 
     static void ApplySwitchButtonVisual(GameObject plate, Sprite squareSprite, Type timedSwitchType)
     {
+        plate.transform.localScale = Vector3.one;
+
         var sr = plate.GetComponent<SpriteRenderer>();
         if (sr == null)
         {
@@ -487,6 +490,7 @@ public static class Lab89Setup
         }
 
         collider.isTrigger = true;
+        collider.offset = Vector2.zero;
         collider.size = new Vector2(1.0f, 0.6f);
 
         var timedSwitch = plate.GetComponent(timedSwitchType);
@@ -652,7 +656,7 @@ public static class Lab89Setup
 
     static void ConfigurePlayerSettings()
     {
-        PlayerSettings.productName = "Robot Repair - Flood Run";
+        PlayerSettings.productName = "Robot Repair - Timed Gate";
         PlayerSettings.companyName = "Kudriatsev Team";
         PlayerSettings.defaultScreenWidth = 1280;
         PlayerSettings.defaultScreenHeight = 720;

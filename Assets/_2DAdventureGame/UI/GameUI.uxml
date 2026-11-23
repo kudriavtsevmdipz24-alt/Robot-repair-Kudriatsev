@@ -6,6 +6,12 @@
         <ui:VisualElement name="CharacterPortrait" style="flex-grow: 0; background-color: rgba(0, 0, 0, 0); background-image: url(&quot;project://database/Assets/_2DAdventureGame/Art/Ducko/UI/CharacterPortrait.png?fileID=21300000&amp;guid=0332b35b8fe3cf8458eb0558889493d1&amp;type=3#CharacterPortrait&quot;); -unity-background-scale-mode: scale-to-fit; position: absolute; top: 12px; left: 6px; width: 129px; height: 135px;" />
     </ui:VisualElement>
     <ui:Label name="FixedCounter" text="Полагоджено 0 / 0" picking-mode="Ignore" style="position: absolute; top: 24px; right: 24px; padding-left: 16px; padding-right: 16px; padding-top: 8px; padding-bottom: 8px; background-color: rgba(0, 0, 0, 0.55); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; font-size: 38px; color: rgb(255, 255, 255); -unity-font-style: bold; -unity-text-align: upper-right;" />
+    <ui:VisualElement name="DoorTimer" picking-mode="Ignore" style="position: absolute; top: 92px; right: 24px; width: 340px; display: none; padding: 12px; background-color: rgb(28, 39, 37); border-radius: 10px;">
+        <ui:Label name="DoorTimerText" picking-mode="Ignore" style="color: rgb(233, 255, 243); font-size: 27px; -unity-font-style: bold; -unity-text-align: middle-center;" />
+        <ui:VisualElement picking-mode="Ignore" style="height: 9px; margin-top: 6px; background-color: rgb(62, 79, 73);">
+            <ui:VisualElement name="DoorTimerFill" picking-mode="Ignore" style="height: 100%; width: 100%; background-color: rgb(112, 239, 163);" />
+        </ui:VisualElement>
+    </ui:VisualElement>
     <ui:Template name="NPCDialogue" src="project://database/Assets/_2DAdventureGame/UI/NPCDialogue.uxml?fileID=9197481963319205126&amp;guid=b125f7e67c764fe79344954c22a5ed1a&amp;type=3#NPCDialogue" />
     <ui:Instance template="NPCDialogue" name="NPCDialogueContainer" picking-mode="Ignore" style="position: absolute; left: 12%; right: 12%; bottom: 16px; height: 176px; display: none;" />
     <ui:Template name="EndScreen" src="project://database/Assets/_2DAdventureGame/UI/EndScreen.uxml?fileID=9197481963319205126&amp;guid=f429a8b84b1a41f59e50eada6566483b&amp;type=3#EndScreen" />
