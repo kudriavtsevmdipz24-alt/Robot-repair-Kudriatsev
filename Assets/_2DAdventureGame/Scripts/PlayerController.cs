@@ -29,6 +29,10 @@ public class PlayerController : MonoBehaviour
     public GameObject projectilePrefab;
     public InputAction LaunchAction;
 
+    // Темп пострілів: після вистрілу C не діє, поки не мине кулдаун
+    public float shootCooldown = 1.0f;
+    float shootTimer;
+
     void Start()
     {
         // Вмикаємо зчитування вводу
@@ -70,10 +74,17 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // Постріл за клавішею C
-        if (LaunchAction.WasPressedThisFrame())
+        // Таймер темпу пострілів
+        if (shootTimer > 0)
+        {
+            shootTimer -= Time.deltaTime;
+        }
+
+        // Постріл за клавішею C — але не частіше, ніж дозволяє shootCooldown
+        if (LaunchAction.WasPressedThisFrame() && shootTimer <= 0)
         {
             Launch();
+            shootTimer = shootCooldown;
         }
     }
 

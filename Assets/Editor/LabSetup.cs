@@ -358,4 +358,28 @@ public static class LabSetup
         AssetDatabase.Refresh();
         Debug.Log($"LAB5 STEP4 OK: layers Character/Projectiles, collision matrix, {enemyCount} enemies placed");
     }
+
+    // ДЗ юніта 4: третій ворог, що випадково міняє вісь руху
+    public static void Lab5_Bonus_RandomAxisEnemy()
+    {
+        var scene = EditorSceneManager.OpenScene("Assets/_2DAdventureGame/Scenes/MainScene.unity");
+        var enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/Enemy.prefab");
+        var playerGO = GameObject.Find("PlayerCharacter");
+        if (playerGO == null) throw new Exception("PlayerCharacter not found in scene");
+        var py = playerGO.transform.position.y;
+
+        var e = (GameObject)PrefabUtility.InstantiatePrefab(enemyPrefab, scene);
+        e.transform.position = new Vector3(0f, py + 1.0f, 0f);
+        var so = new SerializedObject(e.GetComponent("EnemyController"));
+        so.FindProperty("speed").floatValue = 1f;
+        so.FindProperty("vertical").boolValue = true;
+        so.FindProperty("changeTime").floatValue = 3f;
+        so.FindProperty("randomAxis").boolValue = true;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("LAB5 BONUS OK: random-axis enemy placed");
+    }
 }
