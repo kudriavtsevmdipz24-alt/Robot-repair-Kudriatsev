@@ -10,6 +10,7 @@ public class UIHandler : MonoBehaviour
     public float displayTime = 4.0f;
 
     private VisualElement m_NonPlayerDialogue;
+    private Label m_DialogueLabel;
     private float m_TimerDisplay;
     private VisualElement m_Healthbar;
     private VisualElement m_WinScreen;
@@ -28,31 +29,28 @@ public class UIHandler : MonoBehaviour
     void Start()
     {
         UIDocument uiDocument = GetComponent<UIDocument>();
+        VisualElement root = uiDocument.rootVisualElement;
+        root.style.width = Length.Percent(100);
+        root.style.height = Length.Percent(100);
 
-        m_Healthbar = uiDocument.rootVisualElement.Q<VisualElement>("HealthBar");
+        m_Healthbar = root.Q<VisualElement>("HealthBar");
         SetHealthValue(1.0f);
 
-        m_NonPlayerDialogue = uiDocument.rootVisualElement.Q<VisualElement>("NPCDialogueContainer");
+        m_NonPlayerDialogue = root.Q<VisualElement>("NPCDialogueContainer");
         if (m_NonPlayerDialogue != null)
         {
             m_NonPlayerDialogue.style.display = DisplayStyle.None;
-            Label dialogueLabel = m_NonPlayerDialogue.Q<Label>("NPCDialogueText");
-            if (dialogueLabel != null)
-            {
-                dialogueLabel.style.width = Length.Percent(100);
-                dialogueLabel.style.height = Length.Percent(100);
-                dialogueLabel.style.maxWidth = Length.Percent(100);
-                dialogueLabel.style.whiteSpace = WhiteSpace.Normal;
-                dialogueLabel.style.overflow = Overflow.Hidden;
-            }
+            m_NonPlayerDialogue.style.overflow = Overflow.Hidden;
+            m_DialogueLabel = m_NonPlayerDialogue.Q<Label>("NPCDialogueText");
+            ConfigureDialogueLabel();
         }
         m_TimerDisplay = -1.0f;
 
-        m_LoseScreen = uiDocument.rootVisualElement.Q<VisualElement>("LoseScreenContainer");
-        m_WinScreen = uiDocument.rootVisualElement.Q<VisualElement>("WinScreenContainer");
+        m_LoseScreen = root.Q<VisualElement>("LoseScreenContainer");
+        m_WinScreen = root.Q<VisualElement>("WinScreenContainer");
 
         // Лічильник полагоджених: загальна кількість ворогів відома на старті сцени
-        m_FixedCounter = uiDocument.rootVisualElement.Q<Label>("FixedCounter");
+        m_FixedCounter = root.Q<Label>("FixedCounter");
         m_TotalEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None).Length;
         m_FixedEnemies = 0;
         UpdateFixedCounter();
@@ -82,7 +80,25 @@ public class UIHandler : MonoBehaviour
         {
             m_NonPlayerDialogue.style.display = DisplayStyle.Flex;
             m_TimerDisplay = displayTime;
+            m_NonPlayerDialogue.schedule.Execute(ConfigureDialogueLabel);
         }
+    }
+
+    void ConfigureDialogueLabel()
+    {
+        if (m_DialogueLabel == null)
+        {
+            return;
+        }
+
+        m_DialogueLabel.style.position = Position.Absolute;
+        m_DialogueLabel.style.left = Length.Percent(12);
+        m_DialogueLabel.style.right = Length.Percent(12);
+        m_DialogueLabel.style.top = Length.Percent(20);
+        m_DialogueLabel.style.bottom = Length.Percent(16);
+        m_DialogueLabel.style.whiteSpace = WhiteSpace.Normal;
+        m_DialogueLabel.style.overflow = Overflow.Hidden;
+        m_DialogueLabel.style.color = Color.black;
     }
 
     public void DisplayWinScreen()
