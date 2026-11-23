@@ -210,6 +210,16 @@ public class PlayerController : MonoBehaviour
             rigidbody2d.position + aim * 0.55f + Vector2.up * 0.2f,
             Quaternion.identity);
 
+        // Щоб снаряд не "вмирав" у тілі гравця одразу після спавну.
+        var projectileCollider = projectileObject.GetComponent<Collider2D>();
+        if (projectileCollider != null)
+        {
+            foreach (var playerCollider in GetComponents<Collider2D>())
+            {
+                Physics2D.IgnoreCollision(projectileCollider, playerCollider, true);
+            }
+        }
+
         Projectile projectile = projectileObject.GetComponent<Projectile>();
         if (projectile == null)
         {
@@ -249,15 +259,27 @@ public class PlayerController : MonoBehaviour
     bool WasLaunchPressedThisFrame()
     {
         bool actionPressed = LaunchAction != null && LaunchAction.WasPressedThisFrame();
-        bool fallbackPressed = Keyboard.current != null &&
+        bool fallbackPressed = false;
+#if ENABLE_INPUT_SYSTEM
+        fallbackPressed |= Keyboard.current != null &&
             (Keyboard.current.cKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame);
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+        fallbackPressed |= Input.GetKeyDown(KeyCode.C) || Input.GetKeyDown(KeyCode.Space);
+#endif
         return actionPressed || fallbackPressed;
     }
 
     bool WasTalkPressedThisFrame()
     {
-        bool actionPressed = TalkAction.WasPressedThisFrame();
-        bool fallbackPressed = Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame;
+        bool actionPressed = TalkAction != null && TalkAction.WasPressedThisFrame();
+        bool fallbackPressed = false;
+#if ENABLE_INPUT_SYSTEM
+        fallbackPressed |= Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame;
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+        fallbackPressed |= Input.GetKeyDown(KeyCode.X);
+#endif
         return actionPressed || fallbackPressed;
     }
 
