@@ -29,15 +29,20 @@ public class PlayerController : MonoBehaviour
     public GameObject projectilePrefab;
     public InputAction LaunchAction;
 
-    // Темп пострілів: після вистрілу C не діє, поки не мине кулдаун
+    // ДЗ юніта 4: темп пострілів — після вистрілу C не діє, поки не мине кулдаун
     public float shootCooldown = 1.0f;
     float shootTimer;
+
+    // Діалог: кнопка X і промінь, який шукає NPC
+    public InputAction TalkAction;
+    private NonPlayerCharacter lastNonPlayerCharacter;
 
     void Start()
     {
         // Вмикаємо зчитування вводу
         MoveAction.Enable();
         LaunchAction.Enable();
+        TalkAction.Enable();
 
         // Отримуємо посилання на компоненти
         rigidbody2d = GetComponent<Rigidbody2D>();
@@ -86,6 +91,29 @@ public class PlayerController : MonoBehaviour
             Launch();
             shootTimer = shootCooldown;
         }
+
+        // Промінь: чи дивиться робот на NPC (лише шар NPC, 1.5 одиниці вперед)
+        RaycastHit2D hit = Physics2D.Raycast(
+            rigidbody2d.position + Vector2.up * 0.2f,
+            moveDirection, 1.5f, LayerMask.GetMask("NPC"));
+
+        if (hit.collider != null)
+        {
+            // Промінь влучив — показуємо бульбашку з X цього NPC і запам'ятовуємо його
+            NonPlayerCharacter npc = hit.collider.GetComponent<NonPlayerCharacter>();
+            npc.dialogueBubble.SetActive(true);
+            lastNonPlayerCharacter = npc;
+            FindFriend();
+        }
+        else
+        {
+            // Промінь не влучив, а хтось запам'ятований є — ховаємо його бульбашку
+            if (lastNonPlayerCharacter != null)
+            {
+                lastNonPlayerCharacter.dialogueBubble.SetActive(false);
+                lastNonPlayerCharacter = null;
+            }
+        }
     }
 
     void FixedUpdate()
@@ -113,8 +141,8 @@ public class PlayerController : MonoBehaviour
         // Обмежуємо значення здоров'я від 0 до maxHealth
         currentHealth = Mathf.Clamp(currentHealth + amount, 0, maxHealth);
 
-        // Виводимо поточний стан у консоль Unity
-        Debug.Log(currentHealth + "/" + maxHealth);
+        // Оновлюємо смугу здоров'я в HUD; (float) робить ділення дробовим: 2/5 = 0.4, а не 0
+        UIHandler.instance.SetHealthValue(currentHealth / (float)maxHealth);
     }
 
     // Постріл: створюємо снаряд перед роботом і штовхаємо його в напрямку погляду
@@ -128,5 +156,14 @@ public class PlayerController : MonoBehaviour
         projectile.Launch(moveDirection, 300);
 
         animator.SetTrigger("Launch");
+    }
+
+    // X: показати репліку NPC, якщо робот дивиться на нього
+    void FindFriend()
+    {
+        if (TalkAction.WasPressedThisFrame())
+        {
+            UIHandler.instance.DisplayDialogue();
+        }
     }
 }
