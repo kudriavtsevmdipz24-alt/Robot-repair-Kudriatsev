@@ -6,6 +6,7 @@ public class TimedSwitch : MonoBehaviour
     public GameObject door;
     [Min(0.1f)] public float openTime = 3.5f;
     [SerializeField] Color activeColor = new Color(0.35f, 0.95f, 0.65f);
+    [SerializeField] TimedSwitch primarySwitch;
 
     SpriteRenderer plate;
     Color idleColor;
@@ -16,13 +17,27 @@ public class TimedSwitch : MonoBehaviour
     {
         plate = GetComponent<SpriteRenderer>();
         idleColor = plate.color;
-        SetDoorOpen(false);
+        if (primarySwitch == null)
+        {
+            SetDoorOpen(false);
+        }
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (!isActiveAndEnabled || door == null || other.isTrigger ||
+        if (!isActiveAndEnabled || other.isTrigger ||
             !other.TryGetComponent(out PlayerController player) || player.health <= 0)
+        {
+            return;
+        }
+
+        var gateSwitch = primarySwitch != null ? primarySwitch : this;
+        gateSwitch.Activate();
+    }
+
+    void Activate()
+    {
+        if (!isActiveAndEnabled || door == null)
         {
             return;
         }
@@ -33,6 +48,12 @@ public class TimedSwitch : MonoBehaviour
 
     void Update()
     {
+        if (primarySwitch != null)
+        {
+            plate.color = primarySwitch.isOpen ? activeColor : idleColor;
+            return;
+        }
+
         if (!isOpen)
         {
             return;
