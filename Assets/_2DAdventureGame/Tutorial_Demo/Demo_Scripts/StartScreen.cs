@@ -1,33 +1,44 @@
-using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 namespace Beginner2D
 {
-    /// <summary>
-    /// Setup the start screen by adding clicking manipulator to each theme images, so when clicking on them it load the
-    /// proper scene
-    /// </summary>
+    // Стартовий екран для фінальної версії: одна кнопка і перехід у MyLevel.
     public class StartScreen : MonoBehaviour
     {
-        private UIDocument m_UIDocument;
+        [SerializeField] string levelSceneName = "MyLevel";
+        [SerializeField] string startButtonName = "StartButton";
 
-        private VisualElement m_RubySelector;
-        private VisualElement m_DuckoSelector;
-        private VisualElement m_CandySelector;
+        UIDocument m_UIDocument;
+        Button m_StartButton;
 
         private void OnEnable()
         {
             m_UIDocument = GetComponent<UIDocument>();
+            if (m_UIDocument == null)
+            {
+                return;
+            }
 
-            m_RubySelector = m_UIDocument.rootVisualElement.Q<VisualElement>("RubySelector");
-            m_DuckoSelector = m_UIDocument.rootVisualElement.Q<VisualElement>("DuckoSelector");
-            m_CandySelector = m_UIDocument.rootVisualElement.Q<VisualElement>("CandySelector");
-        
-            m_RubySelector.AddManipulator(new Clickable(() => { SceneManager.LoadScene(1); }));
-            m_DuckoSelector.AddManipulator(new Clickable(() => { SceneManager.LoadScene(2); }));
-            m_CandySelector.AddManipulator(new Clickable(() => { SceneManager.LoadScene(3); }));
+            m_StartButton = m_UIDocument.rootVisualElement.Q<Button>(startButtonName);
+            if (m_StartButton != null)
+            {
+                m_StartButton.clicked += StartGame;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (m_StartButton != null)
+            {
+                m_StartButton.clicked -= StartGame;
+            }
+        }
+
+        void StartGame()
+        {
+            SceneManager.LoadScene(levelSceneName);
         }
     }
 }
