@@ -8,6 +8,9 @@ public class EnemyController : MonoBehaviour
     public bool vertical;
     public float changeTime = 3.0f;
 
+    // ДЗ юніта 4: якщо ввімкнено — ворог випадково міняє вісь руху на кожному розвороті
+    public bool randomAxis;
+
     Rigidbody2D rigidbody2d;
     Animator animator;
 
@@ -33,6 +36,10 @@ public class EnemyController : MonoBehaviour
         {
             direction = -direction;
             timer = changeTime;
+            if (randomAxis)
+            {
+                vertical = !vertical; // випадкова зміна осі руху
+            }
         }
     }
 
