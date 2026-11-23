@@ -1,89 +1,104 @@
-﻿Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Drawing
 
-$cell = 34
-$margin = 60
-$bmpW = 26 * $cell + 2 * $margin
-$bmpH = 12 * $cell + 2 * $margin + 40
-$bmp = New-Object System.Drawing.Bitmap $bmpW, $bmpH
-$g = [System.Drawing.Graphics]::FromImage($bmp)
-$g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-$g.Clear([System.Drawing.Color]::FromArgb(255, 245, 242, 235))
+$bitmap = [Drawing.Bitmap]::new(1320, 655)
+$graphics = [Drawing.Graphics]::FromImage($bitmap)
+$graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+$graphics.Clear([Drawing.Color]::White)
+$originX = 650
+$originY = 284
+$cell = 41
 
-$green  = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 142, 196, 106))
-$blue   = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 86, 148, 214))
-$dark   = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 88, 88, 96))
-$white  = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::White)
-$ink    = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 30, 30, 30))
-$red    = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 214, 84, 84))
-$yellow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 244, 200, 66))
-$font   = [System.Drawing.Font]::new('Segoe UI', 9)
-$fontB  = [System.Drawing.Font]::new('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
-$pen    = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(255, 120, 120, 120))
-$penRoute = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(255, 30, 30, 30), 3)
-$penRoute.DashStyle = [System.Drawing.Drawing2D.DashStyle]::Dash
-
-function CellRect([int]$cx, [int]$cy) {
-    $row = 3 - $cy
-    $px = [int]($margin + ($cx + 13) * $cell)
-    $py = [int]($margin + $row * $cell)
-    return [System.Drawing.Rectangle]::new($px, $py, $cell, $cell)
+function Brush([string]$color) {
+    return [Drawing.SolidBrush]::new([Drawing.ColorTranslator]::FromHtml($color))
 }
 
-# Підлога і стіни по периметру
-for ($y = 3; $y -ge -6; $y--) {
-    for ($x = -13; $x -le 12; $x++) {
-        $r = CellRect $x $y
-        if ($y -eq 3 -or $y -eq -6 -or $x -eq -13 -or $x -eq 12) { $g.FillRectangle($dark, $r) }
-        else { $g.FillRectangle($green, $r) }
-        $g.DrawRectangle($pen, $r)
-    }
+function Text([string]$caption, [float]$x, [float]$y, [float]$size, [string]$color, [switch]$Bold) {
+    $weight = if ($Bold) { [Drawing.FontStyle]::Bold } else { [Drawing.FontStyle]::Regular }
+    $font = [Drawing.Font]::new('Segoe UI', $size, $weight)
+    $brush = Brush $color
+    $graphics.DrawString($caption, $font, $brush, $x, $y)
+    $brush.Dispose()
+    $font.Dispose()
 }
 
-# Вода: перешкода внизу посередині
-$g.FillRectangle($blue, (CellRect 0 -3))
-$g.FillRectangle($blue, (CellRect 0 -4))
-$g.DrawRectangle($pen, (CellRect 0 -3))
-$g.DrawRectangle($pen, (CellRect 0 -4))
-
-# Маршрути ворогів (пунктирні рамки)
-$rA = CellRect -12 -4; $rA.Width = 3 * $cell; $g.DrawRectangle($penRoute, $rA)   # A: x -12..-9
-$rB = CellRect 3 0;    $rB.Height = 3 * $cell; $g.DrawRectangle($penRoute, $rB)  # B: y 0..2
-$rD = CellRect 10 -3;  $rD.Height = 3 * $cell; $g.DrawRectangle($penRoute, $rD)  # D: y -3..-1
-$rF = CellRect 6 0;    $rF.Width = 3 * $cell; $g.DrawRectangle($penRoute, $rF)   # F: x 6..8
-
-function Mark([int]$cx, [int]$cy, [System.Drawing.SolidBrush]$brush, [string]$label) {
-    $r = CellRect $cx $cy
-    $g.FillEllipse($brush, ($r.X + 5), ($r.Y + 5), ($cell - 10), ($cell - 10))
-    $sz = $g.MeasureString($label, $fontB)
-    $g.DrawString($label, $fontB, $white, [single]($r.X + ($cell - $sz.Width) / 2), [single]($r.Y + ($cell - $sz.Height) / 2))
+function TileRect([float]$x, [float]$y, [float]$width, [float]$height, [string]$color) {
+    $brush = Brush $color
+    $graphics.FillRectangle($brush, [single]($originX + $x * $cell), [single]($originY - ($y + $height) * $cell), [single]($width * $cell), [single]($height * $cell))
+    $brush.Dispose()
 }
 
-Mark -12 -1 $ink 'P'    # старт робота
-Mark -10 -1 $ink 'N'    # NPC
-Mark -12 -4 $ink 'A'    # ворог A
-Mark 3 0 $ink 'B'       # ворог B
-Mark 10 -3 $ink 'D'     # ворог D
-Mark 7 0 $yellow 'F'    # швидкий ворог
-Mark -6 -3 $white '+'   # аптечка
-Mark 4 0 $white '+'     # велика аптечка (Amount 2)
-Mark -1 -4 $red 'Z'     # зона шкоди
-Mark 0 1 $red 'Z'       # зона шкоди
+function Marker([float]$x, [float]$y, [string]$caption, [string]$color) {
+    $px = $originX + $x * $cell
+    $py = $originY - $y * $cell
+    $brush = Brush $color
+    $graphics.FillEllipse($brush, [single]($px - 13), [single]($py - 13), [single]26, [single]26)
+    $brush.Dispose()
+    Text $caption ($px - 8) ($py - 12.5) 11 '#ffffff' -Bold
+}
 
-# Підписи ділянок
-$g.DrawString('Ділянка 1: знайомство', $fontB, $ink, [single]($margin + 0 * $cell), [single]8)
-$g.DrawString('Ділянка 2: практика (вода, зона)', $fontB, $ink, [single]($margin + 8 * $cell), [single]8)
-$g.DrawString('Ділянка 3: перевірка (швидкий ворог)', $fontB, $ink, [single]($margin + 17 * $cell), [single]8)
+function Route([Drawing.Pen]$pen, [array]$points) {
+    $graphics.DrawLines($pen, [Drawing.PointF[]]@(
+        foreach ($point in $points) {
+            [Drawing.PointF]::new($originX + $point[0] * $cell, $originY - $point[1] * $cell)
+        }
+    ))
+}
 
-# Легенда
-$ly = $margin + 12 * $cell + 8
-$g.FillRectangle($green, $margin, $ly, 20, 20); $g.DrawString('підлога', $font, $ink, [single]($margin + 24), [single]($ly + 1))
-$g.FillRectangle($blue, ($margin + 110), $ly, 20, 20); $g.DrawString('вода (блокує)', $font, $ink, [single]($margin + 134), [single]($ly + 1))
-$g.FillRectangle($dark, ($margin + 260), $ly, 20, 20); $g.DrawString('стіна', $font, $ink, [single]($margin + 284), [single]($ly + 1))
-$g.DrawString('A/B/D — звичайні вороги; F — швидкий (жовтий); + — аптечка; Z — зона шкоди; N — NPC; пунктир — маршрут', $font, $ink, [single]($margin + 350), [single]($ly + 1))
+Text 'Robot Repair: Timed Gate' 74 16 26 '#172d27' -Bold
+Text 'План MyLevel  /  v2.1.0' 75 66 13 '#456059'
+Text '1  Знайомство' 78 95 15 '#172d27' -Bold
+Text '2  Практика' 395 95 15 '#172d27' -Bold
+Text '3  Перевірка' 940 95 15 '#172d27' -Bold
 
-$docsDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'Docs'
-if (-not (Test-Path $docsDir)) { $docsDir = $PSScriptRoot }
-New-Item -ItemType Directory -Force -Path $docsDir | Out-Null
-$bmp.Save((Join-Path $docsDir 'level-plan.png'), [System.Drawing.Imaging.ImageFormat]::Png)
-$g.Dispose(); $bmp.Dispose()
-Write-Host 'PLAN SAVED'
+TileRect -13.9 -5.35 7.9 9.35 '#e9f2e3'
+TileRect -6 -5.35 11.15 9.35 '#e1eddb'
+TileRect 5.15 -5.35 8.75 9.35 '#eaf2e5'
+TileRect -13.9 3.85 27.8 .15 '#547477'
+TileRect -13.9 -5.35 27.8 .15 '#547477'
+TileRect -10.5 1.1 3 2.75 '#c1dbe3'
+TileRect 4.7 -5.35 .9 2.85 '#485550'
+TileRect 4.7 -.8 .9 2.75 '#485550'
+TileRect 4.7 -2.5 .9 1.7 '#b64e16'
+TileRect -1.17 -1.93 .94 .56 '#b64e16'
+TileRect -2.02 -5 2.04 1.98 '#eab6a6'
+TileRect 4.08 1.96 2.14 1.98 '#eab6a6'
+
+$repair = [Drawing.Pen]::new([Drawing.ColorTranslator]::FromHtml('#41645c'), 2)
+$repair.DashStyle = [Drawing.Drawing2D.DashStyle]::Dash
+Route $repair @(@(-11.2,-2.8),@(-7.84,-2.8))
+Route $repair @(@(-3.8,1.1),@(-3.8,2.8))
+Route $repair @(@(1.4,-3.1),@(4.6,-3.1))
+Route $repair @(@(10.6,1.2),@(10.6,2.8))
+Route $repair @(@(8.6,-1.1),@(11.72,-1.1))
+$repair.Dispose()
+
+$direct = [Drawing.Pen]::new([Drawing.ColorTranslator]::FromHtml('#156e4c'), 4)
+$direct.EndCap = [Drawing.Drawing2D.LineCap]::ArrowAnchor
+Route $direct @(@(-.7,-1.65),@(7.25,-1.65))
+$direct.Dispose()
+$bypass = [Drawing.Pen]::new([Drawing.ColorTranslator]::FromHtml('#a73526'), 3)
+$bypass.DashStyle = [Drawing.Drawing2D.DashStyle]::Dash
+$bypass.EndCap = [Drawing.Drawing2D.LineCap]::ArrowAnchor
+Route $bypass @(@(1.25,-1.2),@(1.25,2.85),@(7.35,2.85),@(7.35,1.0))
+$bypass.Dispose()
+
+Marker -12 -1 'Г' '#285a50'
+Marker -10.5 -1 'N' '#285a50'
+Marker -11.2 -2.8 '1' '#475a82'
+Marker -3.8 1.1 '2' '#475a82'
+Marker 1.4 -3.1 '3' '#9f491d'
+Marker 8.6 -1.1 '4' '#a3343c'
+Marker 10.6 1.2 '5' '#475a82'
+Marker -6 -3 '+' '#387643'
+Marker 3.4 .6 '+' '#387643'
+Text 'Старт' 104 350 10 '#172d27'
+Text 'Плита' 593 309 10 '#813612' -Bold
+Text 'Двері' 891 373 10 '#813612' -Bold
+Text 'Верхній обхід' 680 140 10 '#8a2b22' -Bold
+Text 'Г — старт гравця    N — NPC    1–5 — роботи та їхні маршрути    + — аптечки' 76 515 14 '#172d27'
+Text 'Суцільна стрілка — шлях через двері за 3,5 с. Пунктирна стрілка — верхній обхід через пастку.' 76 551 13 '#36534a'
+Text 'Червоні клітини — зони шкоди, блакитні — вода.' 76 587 13 '#36534a'
+
+$bitmap.Save((Join-Path $PSScriptRoot 'level-plan.png'), [Drawing.Imaging.ImageFormat]::Png)
+$graphics.Dispose()
+$bitmap.Dispose()
