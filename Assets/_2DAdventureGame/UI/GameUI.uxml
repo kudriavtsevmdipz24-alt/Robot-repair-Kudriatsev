@@ -5,11 +5,12 @@
         </ui:VisualElement>
         <ui:VisualElement name="CharacterPortrait" style="flex-grow: 0; background-color: rgba(0, 0, 0, 0); background-image: url(&quot;project://database/Assets/_2DAdventureGame/Art/Ducko/UI/CharacterPortrait.png?fileID=21300000&amp;guid=0332b35b8fe3cf8458eb0558889493d1&amp;type=3#CharacterPortrait&quot;); -unity-background-scale-mode: scale-to-fit; position: absolute; top: 12px; left: 6px; width: 129px; height: 135px;" />
     </ui:VisualElement>
-    <ui:Label name="FixedCounter" text="Полагоджено 0 / 0" picking-mode="Ignore" style="position: absolute; top: 24px; right: 24px; padding-left: 16px; padding-right: 16px; padding-top: 8px; padding-bottom: 8px; background-color: rgba(0, 0, 0, 0.55); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; font-size: 38px; color: rgb(255, 255, 255); -unity-font-style: bold; -unity-text-align: upper-right;" />
-    <ui:VisualElement name="DoorTimer" picking-mode="Ignore" style="position: absolute; top: 92px; right: 24px; width: 340px; display: none; padding: 12px; background-color: rgb(28, 39, 37); border-radius: 10px;">
-        <ui:Label name="DoorTimerText" picking-mode="Ignore" style="color: rgb(233, 255, 243); font-size: 27px; -unity-font-style: bold; -unity-text-align: middle-center;" />
-        <ui:VisualElement picking-mode="Ignore" style="height: 9px; margin-top: 6px; background-color: rgb(62, 79, 73);">
-            <ui:VisualElement name="DoorTimerFill" picking-mode="Ignore" style="height: 100%; width: 100%; background-color: rgb(112, 239, 163);" />
+    <ui:Template name="RobotCounter" src="project://database/Assets/_2DAdventureGame/Tutorial_Demo/Demo_UI/Common/RobotCounter.uxml?fileID=9197481963319205126&amp;guid=f9938e8b2012a4aa081187560303389a&amp;type=3#RobotCounter" />
+    <ui:Instance template="RobotCounter" name="FixedCounter" picking-mode="Ignore" style="position: absolute; top: 24px; right: 24px; width: 412px; height: 84px;" />
+    <ui:VisualElement name="DoorTimer" picking-mode="Ignore" style="position: absolute; top: 114px; right: 24px; width: 340px; height: 78px; display: none; padding: 10px 24px 12px; background-image: url(&quot;project://database/Assets/_2DAdventureGame/Art/UICounterBar.png?fileID=21300000&amp;guid=4bb9e5210d4bc484ab335c62e1e0ffd3&amp;type=3#UICounterBar&quot;);">
+        <ui:Label name="DoorTimerText" picking-mode="Ignore" style="flex-grow: 1; color: rgb(18, 39, 25); font-size: 26px; -unity-font-style: bold; -unity-text-align: middle-center; -unity-font-definition: url(&quot;project://database/Assets/_2DAdventureGame/Tutorial_Demo/TextMesh%20Pro/Fonts/LiberationSans.ttf?fileID=12800000&amp;guid=e3265ab4bf004d28a9537516768c1c75&amp;type=3#LiberationSans&quot;);" />
+        <ui:VisualElement picking-mode="Ignore" style="height: 8px; background-color: rgba(18, 39, 25, 0.28);">
+            <ui:VisualElement name="DoorTimerFill" picking-mode="Ignore" style="height: 100%; width: 100%; background-color: rgb(18, 63, 40);" />
         </ui:VisualElement>
     </ui:VisualElement>
     <ui:Template name="NPCDialogue" src="project://database/Assets/_2DAdventureGame/UI/NPCDialogue.uxml?fileID=9197481963319205126&amp;guid=b125f7e67c764fe79344954c22a5ed1a&amp;type=3#NPCDialogue" />

@@ -64,7 +64,7 @@ public class UIHandler : MonoBehaviour
         m_DoorTimerFill = root.Q("DoorTimerFill");
 
         // Лічильник полагоджених: загальна кількість ворогів відома на старті сцени
-        m_FixedCounter = root.Q<Label>("FixedCounter");
+        m_FixedCounter = root.Q("FixedCounter")?.Q<Label>("CounterLabel");
         m_TotalEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None).Length;
         m_FixedEnemies = 0;
         UpdateFixedCounter();

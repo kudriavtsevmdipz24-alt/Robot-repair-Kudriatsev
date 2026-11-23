@@ -126,10 +126,10 @@ public class PlayerController : MonoBehaviour
             shootTimer = shootCooldown;
         }
 
-        // Промінь: чи дивиться робот на NPC (лише шар NPC, 1.5 одиниці вперед)
-        RaycastHit2D hit = Physics2D.Raycast(
+        // Ширша перевірка напрямку залишає підказку доступною з різних боків NPC.
+        RaycastHit2D hit = Physics2D.CircleCast(
             rigidbody2d.position + Vector2.up * 0.2f,
-            moveDirection, 1.5f, LayerMask.GetMask("NPC"));
+            0.3f, moveDirection, 1.5f, LayerMask.GetMask("NPC"));
 
         if (hit.collider != null)
         {

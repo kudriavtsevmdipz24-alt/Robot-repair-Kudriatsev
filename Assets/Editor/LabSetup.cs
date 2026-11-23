@@ -711,8 +711,8 @@ public static class LabSetup
         var npcCol = npcGO.AddComponent<BoxCollider2D>();
         var nb = npcSprite.bounds;
         npcCol.isTrigger = false; // робот впирається у NPC
-        npcCol.size = new Vector2(nb.size.x * 0.8f, nb.size.y * 0.45f);
-        npcCol.offset = new Vector2(0f, nb.size.y * 0.25f);
+        npcCol.size = new Vector2(0.64f, 0.30f);
+        npcCol.offset = new Vector2(0f, 0.16f);
 
         var bubble = new GameObject("DialogueBox");
         bubble.transform.SetParent(npcGO.transform, false);

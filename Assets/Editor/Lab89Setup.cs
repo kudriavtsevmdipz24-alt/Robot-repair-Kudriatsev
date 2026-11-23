@@ -176,6 +176,7 @@ public static class Lab89Setup
         PlaceRightGateWithButton(scene);
         ConfigureGateRoutes(scene);
         RetuneEnemiesInScene(scene);
+        SpaceStartingArea();
         ExpandCameraAndConfiner();
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -195,6 +196,21 @@ public static class Lab89Setup
         ConfigureReturnPlate(scene, switchPrefab, GameObject.Find("TimedSwitchPlate"));
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
+    }
+
+    public static void Lab9_PolishStartingArea()
+    {
+        var scene = EditorSceneManager.OpenScene(MyLevelPath);
+        SpaceStartingArea();
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+    }
+
+    static void SpaceStartingArea()
+    {
+        GameObject.Find("Decoration_1").transform.position = new Vector3(-9.15f, -0.4f, 0f);
+        GameObject.Find("Decoration_2 (1)").transform.position = new Vector3(-6.4f, -0.7f, 0f);
+        GameObject.Find("Enemy_Patrol_A").transform.position = new Vector3(-11.2f, -3.55f, 0f);
     }
 
     static void ShrinkCollectiblesInScene()

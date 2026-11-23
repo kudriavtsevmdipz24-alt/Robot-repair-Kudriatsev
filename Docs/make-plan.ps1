@@ -45,7 +45,7 @@ function Route([Drawing.Pen]$pen, [array]$points) {
 }
 
 Text 'Robot Repair: Timed Gate' 74 16 26 '#172d27' -Bold
-Text 'План MyLevel  /  v2.1.1' 75 66 13 '#456059'
+Text 'План MyLevel  /  v2.1.2' 75 66 13 '#456059'
 Text '1  Знайомство' 78 95 15 '#172d27' -Bold
 Text '2  Практика' 395 95 15 '#172d27' -Bold
 Text '3  Перевірка' 940 95 15 '#172d27' -Bold
@@ -65,7 +65,7 @@ TileRect -2.02 -5 2.04 1.98 '#eab6a6'
 
 $repair = [Drawing.Pen]::new([Drawing.ColorTranslator]::FromHtml('#41645c'), 2)
 $repair.DashStyle = [Drawing.Drawing2D.DashStyle]::Dash
-Route $repair @(@(-11.2,-2.8),@(-7.84,-2.8))
+Route $repair @(@(-11.2,-3.55),@(-7.84,-3.55))
 Route $repair @(@(-3.8,1.1),@(-3.8,2.8))
 Route $repair @(@(1.4,-3.1),@(4.6,-3.1))
 Route $repair @(@(10.6,1.2),@(10.6,2.8))
@@ -79,7 +79,7 @@ $direct.Dispose()
 
 Marker -12 -1 'Г' '#285a50'
 Marker -10.5 -1 'N' '#285a50'
-Marker -11.2 -2.8 '1' '#475a82'
+Marker -11.2 -3.55 '1' '#475a82'
 Marker -3.8 1.1 '2' '#475a82'
 Marker 1.4 -3.1 '3' '#9f491d'
 Marker 8.6 -1.1 '4' '#a3343c'
