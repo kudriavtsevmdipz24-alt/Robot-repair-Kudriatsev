@@ -32,8 +32,11 @@ public class UIHandler : MonoBehaviour
         m_Healthbar = uiDocument.rootVisualElement.Q<VisualElement>("HealthBar");
         SetHealthValue(1.0f);
 
-        m_NonPlayerDialogue = uiDocument.rootVisualElement.Q<VisualElement>("NPCDialogue");
-        m_NonPlayerDialogue.style.display = DisplayStyle.None;
+        m_NonPlayerDialogue = uiDocument.rootVisualElement.Q<VisualElement>("NPCDialogueContainer");
+        if (m_NonPlayerDialogue != null)
+        {
+            m_NonPlayerDialogue.style.display = DisplayStyle.None;
+        }
         m_TimerDisplay = -1.0f;
 
         m_LoseScreen = uiDocument.rootVisualElement.Q<VisualElement>("LoseScreenContainer");
@@ -66,8 +69,11 @@ public class UIHandler : MonoBehaviour
 
     public void DisplayDialogue()
     {
-        m_NonPlayerDialogue.style.display = DisplayStyle.Flex;
-        m_TimerDisplay = displayTime;
+        if (m_NonPlayerDialogue != null)
+        {
+            m_NonPlayerDialogue.style.display = DisplayStyle.Flex;
+            m_TimerDisplay = displayTime;
+        }
     }
 
     public void DisplayWinScreen()
