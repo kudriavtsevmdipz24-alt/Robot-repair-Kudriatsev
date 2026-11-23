@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -29,6 +30,14 @@ public class PlayerController : MonoBehaviour
     public GameObject projectilePrefab;
     public InputAction LaunchAction;
 
+    // Зворотний зв'язок (лаба 9): окремі звуки та короткий спалах на подію
+    public AudioClip playerHitSound;
+    public AudioClip collectibleSound;
+    public AudioClip projectileThrowSound;
+    public Color damageFlashColor = new Color(1f, 0.55f, 0.55f, 1f);
+    public Color healFlashColor = new Color(0.65f, 1f, 0.65f, 1f);
+    public float feedbackFlashTime = 0.15f;
+
     // ДЗ юніта 4: темп пострілів — після вистрілу C не діє, поки не мине кулдаун
     public float shootCooldown = 1.0f;
     float shootTimer;
@@ -37,6 +46,11 @@ public class PlayerController : MonoBehaviour
     public InputAction TalkAction;
     private NonPlayerCharacter lastNonPlayerCharacter;
     private const float talkDistance = 2.0f;
+
+    AudioSource audioSource;
+    SpriteRenderer spriteRenderer;
+    Color baseColor;
+    Coroutine feedbackRoutine;
 
     void Start()
     {
@@ -48,6 +62,12 @@ public class PlayerController : MonoBehaviour
         // Отримуємо посилання на компоненти
         rigidbody2d = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            baseColor = spriteRenderer.color;
+        }
 
         // Встановлюємо початкове здоров'я на максимум
         currentHealth = maxHealth;
@@ -138,21 +158,35 @@ public class PlayerController : MonoBehaviour
             {
                 return; // Шкода не проходить, якщо персонаж невразливий
             }
+            PlaySound(playerHitSound);
+            FlashSprite(damageFlashColor);
             isInvincible = true;
             damageCooldown = timeInvincible;
             animator.SetTrigger("Hit"); // анімація отриманого удару
         }
 
+        int previousHealth = currentHealth;
+
         // Обмежуємо значення здоров'я від 0 до maxHealth
         currentHealth = Mathf.Clamp(currentHealth + amount, 0, maxHealth);
 
+        if (amount > 0 && currentHealth > previousHealth)
+        {
+            PlaySound(collectibleSound);
+            FlashSprite(healFlashColor);
+        }
+
         // Оновлюємо смугу здоров'я в HUD; (float) робить ділення дробовим: 2/5 = 0.4, а не 0
-        UIHandler.instance.SetHealthValue(currentHealth / (float)maxHealth);
+        if (UIHandler.instance != null)
+        {
+            UIHandler.instance.SetHealthValue(currentHealth / (float)maxHealth);
+        }
     }
 
     // Постріл: створюємо снаряд перед роботом і штовхаємо його в напрямку погляду
     void Launch()
     {
+        PlaySound(projectileThrowSound);
         GameObject projectileObject = Instantiate(projectilePrefab,
             rigidbody2d.position + Vector2.up * 0.5f,
             Quaternion.identity);
@@ -196,5 +230,35 @@ public class PlayerController : MonoBehaviour
         bool actionPressed = TalkAction.WasPressedThisFrame();
         bool fallbackPressed = Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame;
         return actionPressed || fallbackPressed;
+    }
+
+    void PlaySound(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
+    }
+
+    void FlashSprite(Color flashColor)
+    {
+        if (spriteRenderer == null)
+        {
+            return;
+        }
+
+        if (feedbackRoutine != null)
+        {
+            StopCoroutine(feedbackRoutine);
+        }
+        feedbackRoutine = StartCoroutine(FlashRoutine(flashColor));
+    }
+
+    IEnumerator FlashRoutine(Color flashColor)
+    {
+        spriteRenderer.color = flashColor;
+        yield return new WaitForSeconds(feedbackFlashTime);
+        spriteRenderer.color = baseColor;
+        feedbackRoutine = null;
     }
 }

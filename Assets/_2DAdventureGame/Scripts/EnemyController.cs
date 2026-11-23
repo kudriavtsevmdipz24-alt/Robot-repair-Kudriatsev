@@ -13,6 +13,8 @@ public class EnemyController : MonoBehaviour
 
     Rigidbody2D rigidbody2d;
     Animator animator;
+    AudioSource audioSource;
+    public AudioClip fixedSound;
 
     float timer;
     int direction = 1;
@@ -33,6 +35,7 @@ public class EnemyController : MonoBehaviour
     {
         rigidbody2d = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
         timer = changeTime;
         patrolOrigin = rigidbody2d.position;
         patrolRange = speed * changeTime;
@@ -100,6 +103,10 @@ public class EnemyController : MonoBehaviour
         broken = false;
         rigidbody2d.simulated = false;
         animator.SetTrigger("Fixed");
+        if (audioSource != null && fixedSound != null)
+        {
+            audioSource.PlayOneShot(fixedSound);
+        }
 
         // ДЗ юніта 5: оновлюємо лічильник полагоджених у HUD
         if (UIHandler.instance != null)
