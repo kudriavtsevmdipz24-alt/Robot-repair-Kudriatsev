@@ -81,7 +81,9 @@ $g.FillRectangle($blue, ($margin + 110), $ly, 20, 20); $g.DrawString('вода (
 $g.FillRectangle($dark, ($margin + 260), $ly, 20, 20); $g.DrawString('стіна', $font, $ink, [single]($margin + 284), [single]($ly + 1))
 $g.DrawString('A/B/D — звичайні вороги; F — швидкий (жовтий); + — аптечка; Z — зона шкоди; N — NPC; пунктир — маршрут', $font, $ink, [single]($margin + 350), [single]($ly + 1))
 
-New-Item -ItemType Directory -Force -Path 'D:\Robot-repair-Kudriatsev\Docs' | Out-Null
-$bmp.Save('D:\Robot-repair-Kudriatsev\Docs\level-plan.png', [System.Drawing.Imaging.ImageFormat]::Png)
+$docsDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'Docs'
+if (-not (Test-Path $docsDir)) { $docsDir = $PSScriptRoot }
+New-Item -ItemType Directory -Force -Path $docsDir | Out-Null
+$bmp.Save((Join-Path $docsDir 'level-plan.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 $g.Dispose(); $bmp.Dispose()
 Write-Host 'PLAN SAVED'

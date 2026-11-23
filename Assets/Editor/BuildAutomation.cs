@@ -6,12 +6,16 @@ using UnityEditor.Build.Reporting;
 
 public static class BuildAutomation
 {
-    // Запуск:
-    // Unity.exe -batchmode -quit -projectPath D:\Robot-repair-Kudriatsev -executeMethod BuildAutomation.BuildWindowsRelease
+    // Запуск (Windows):
+    // Unity.exe -batchmode -quit -projectPath C:\Users\MAX\Desktop\labs\gamedis -executeMethod BuildAutomation.BuildWindowsRelease
     public static void BuildWindowsRelease()
     {
-        const string outputDir = @"D:\Builds\RobotRepair-FloodRun-v1.0.2-Windows";
         const string exeName = "Robot Repair - Flood Run.exe";
+        const string version = "1.0.3";
+
+        string projectRoot = Directory.GetParent(Application.dataPath)!.FullName;
+        string labsRoot = Directory.GetParent(projectRoot)!.FullName;
+        string outputDir = Path.Combine(labsRoot, "Builds", $"RobotRepair-FloodRun-v{version}-Windows");
 
         Directory.CreateDirectory(outputDir);
         string outputPath = Path.Combine(outputDir, exeName);
