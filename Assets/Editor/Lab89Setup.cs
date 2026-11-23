@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public static class Lab89Setup
 {
@@ -188,6 +189,321 @@ public static class Lab89Setup
         Debug.Log("LAB9 OK: camera follow fix applied");
     }
 
+  // Лабораторна 9: прохідність — дрібні хілки, стіна з проходом, патруль ворогів, карта.
+    public static void Lab9_Step3_PlayabilityPass()
+    {
+        var scene = EditorSceneManager.OpenScene(MyLevelPath);
+
+        ShrinkCollectiblesInScene();
+        RefreshTimedSwitchPrefabVisual();
+        EnsurePlayerProjectileOnScene();
+        BeautifyTilemap();
+        RetuneEnemiesInScene();
+        PlaceRightGateWithButton(scene);
+        ExpandCameraAndConfiner();
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("LAB9 OK: playability pass (health scale, gate, patrol, map)");
+    }
+
+    static void ShrinkCollectiblesInScene()
+    {
+        var healthType = LoadScriptType("Assets/_2DAdventureGame/Scripts/CollectibleHealth.cs");
+        foreach (var collectible in UnityEngine.Object.FindObjectsByType(healthType, FindObjectsSortMode.None))
+        {
+            var tr = ((Component)collectible).transform;
+            tr.localScale = new Vector3(0.32f, 0.32f, 1f);
+        }
+    }
+
+    static void EnsurePlayerProjectileOnScene()
+    {
+        var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/PlayerCharacter.prefab");
+        var projectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/Projectile.prefab");
+        if (playerPrefab == null || projectilePrefab == null)
+        {
+            throw new Exception("PlayerCharacter or Projectile prefab missing");
+        }
+
+        var player = GameObject.Find("PlayerCharacter");
+        if (player == null)
+        {
+            throw new Exception("PlayerCharacter not found on MyLevel");
+        }
+
+        var controller = player.GetComponent("PlayerController");
+        var so = new SerializedObject(controller);
+        var projectileField = so.FindProperty("projectilePrefab");
+        if (projectileField != null)
+        {
+            projectileField.objectReferenceValue = projectilePrefab;
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void BeautifyTilemap()
+    {
+        var tilemapGO = GameObject.Find("Tilemap");
+        if (tilemapGO == null)
+        {
+            return;
+        }
+
+        var tilemap = tilemapGO.GetComponent<Tilemap>();
+        if (tilemap == null)
+        {
+            return;
+        }
+
+        var grassTile = AssetDatabase.LoadAssetAtPath<TileBase>("Assets/_2DAdventureGame/Art/Tiles/FloorGrass_4.asset");
+        var brickTile = AssetDatabase.LoadAssetAtPath<TileBase>("Assets/_2DAdventureGame/Art/Tiles/FloorBricksToGrassSquare_6.asset");
+        if (grassTile == null)
+        {
+            return;
+        }
+
+        for (int x = -14; x <= 13; x++)
+        {
+            for (int y = -4; y <= 2; y++)
+            {
+                var cell = new Vector3Int(x, y, 0);
+                if (tilemap.GetTile(cell) == null)
+                {
+                    tilemap.SetTile(cell, grassTile);
+                }
+            }
+        }
+
+        if (brickTile != null)
+        {
+            for (int x = -14; x <= 13; x++)
+            {
+                tilemap.SetTile(new Vector3Int(x, -2, 0), brickTile);
+            }
+            for (int x = -14; x <= 13; x++)
+            {
+                tilemap.SetTile(new Vector3Int(x, -3, 0), brickTile);
+            }
+        }
+
+        tilemap.CompressBounds();
+    }
+
+    static void RetuneEnemiesInScene()
+    {
+        var enemyType = LoadScriptType("Assets/_2DAdventureGame/Scripts/EnemyController.cs");
+        foreach (var enemy in UnityEngine.Object.FindObjectsByType(enemyType, FindObjectsSortMode.None))
+        {
+            var name = ((Component)enemy).gameObject.name;
+            if (name.Contains("Buffed"))
+            {
+                continue;
+            }
+
+            var so = new SerializedObject(enemy);
+            so.FindProperty("minPatrolRange").floatValue = 2.4f;
+
+            if (name.Contains("Fast"))
+            {
+                so.FindProperty("speed").floatValue = 1.5f;
+                so.FindProperty("changeTime").floatValue = 2.0f;
+                so.FindProperty("vertical").boolValue = false;
+            }
+            else
+            {
+                so.FindProperty("speed").floatValue = 1.2f;
+                so.FindProperty("changeTime").floatValue = 3.0f;
+                so.FindProperty("vertical").boolValue = name.Contains("B") || name.Contains("Vertical");
+            }
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+
+    static void PlaceRightGateWithButton(UnityEngine.SceneManagement.Scene scene)
+    {
+        DestroyIfExists("TimedDoor");
+        DestroyIfExists("TimedSwitchPlate");
+        DestroyIfExists("EnemyBuffedGate");
+        DestroyIfExists("GateWall_Left");
+        DestroyIfExists("GateWall_Right");
+        DestroyIfExists("GateDoorCenter");
+
+        var switchPrefab = RefreshTimedSwitchPrefabVisual();
+        var enemyBuffedPrefab = EnsureEnemyBuffedPrefab();
+        var enemyType = LoadScriptType("Assets/_2DAdventureGame/Scripts/EnemyController.cs");
+
+        var wallTint = new Color(0.45f, 0.38f, 0.32f, 1f);
+        var wallLeft = CreateSolidWallSegment("GateWall_Left", new Vector3(4.15f, -0.35f, 0f), new Vector2(1.15f, 2.85f), wallTint);
+        var wallRight = CreateSolidWallSegment("GateWall_Right", new Vector3(5.75f, -0.35f, 0f), new Vector2(1.15f, 2.85f), wallTint);
+        var doorCenter = CreateSolidWallSegment("GateDoorCenter", new Vector3(4.95f, -0.15f, 0f), new Vector2(0.72f, 1.15f), new Color(0.58f, 0.48f, 0.4f, 1f));
+
+        var plate = (GameObject)PrefabUtility.InstantiatePrefab(switchPrefab, scene);
+        plate.name = "TimedSwitchPlate";
+        plate.transform.position = new Vector3(2.8f, -1.22f, 0f);
+        plate.transform.localScale = new Vector3(0.85f, 0.85f, 1f);
+
+        var timedSwitchType = LoadScriptType("Assets/_2DAdventureGame/Scripts/TimedSwitch.cs");
+        var timedSwitch = plate.GetComponent(timedSwitchType);
+        var tsSo = new SerializedObject(timedSwitch);
+        tsSo.FindProperty("door").objectReferenceValue = doorCenter;
+        tsSo.FindProperty("openTime").floatValue = 5.0f;
+        tsSo.ApplyModifiedPropertiesWithoutUndo();
+
+        var buffedEnemy = (GameObject)PrefabUtility.InstantiatePrefab(enemyBuffedPrefab, scene);
+        buffedEnemy.name = "EnemyBuffedGate";
+        buffedEnemy.transform.position = new Vector3(8.2f, -0.9f, 0f);
+
+        var buffedController = buffedEnemy.GetComponent(enemyType);
+        if (buffedController != null)
+        {
+            var bso = new SerializedObject(buffedController);
+            bso.FindProperty("speed").floatValue = 0.9f;
+            bso.FindProperty("changeTime").floatValue = 3.5f;
+            bso.FindProperty("vertical").boolValue = false;
+            bso.FindProperty("minPatrolRange").floatValue = 2.0f;
+            bso.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+
+    static GameObject CreateSolidWallSegment(string name, Vector3 position, Vector2 size, Color tint)
+    {
+        var damageZonePrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/DamageZone.prefab");
+        Sprite segmentSprite = null;
+        if (damageZonePrefab != null)
+        {
+            var src = damageZonePrefab.GetComponent<SpriteRenderer>();
+            if (src != null)
+            {
+                segmentSprite = src.sprite;
+            }
+        }
+
+        var go = new GameObject(name);
+        go.transform.position = position;
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = segmentSprite;
+        sr.drawMode = SpriteDrawMode.Sliced;
+        sr.size = size;
+        sr.color = tint;
+        sr.sortingOrder = 2;
+
+        var box = go.AddComponent<BoxCollider2D>();
+        box.size = size;
+        box.isTrigger = false;
+
+        return go;
+    }
+
+    static GameObject RefreshTimedSwitchPrefabVisual()
+    {
+        var damageZonePrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsRoot}/DamageZone.prefab");
+        if (damageZonePrefab == null)
+        {
+            throw new Exception("DamageZone prefab not found for switch button");
+        }
+
+        var sourceRenderer = damageZonePrefab.GetComponent<SpriteRenderer>();
+        var timedSwitchType = LoadScriptType("Assets/_2DAdventureGame/Scripts/TimedSwitch.cs");
+
+        var existing = AssetDatabase.LoadAssetAtPath<GameObject>(TimedSwitchPrefabPath);
+        if (existing != null)
+        {
+            var contents = PrefabUtility.LoadPrefabContents(TimedSwitchPrefabPath);
+            try
+            {
+                ApplySwitchButtonVisual(contents, sourceRenderer.sprite, timedSwitchType);
+                PrefabUtility.SaveAsPrefabAsset(contents, TimedSwitchPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+            return AssetDatabase.LoadAssetAtPath<GameObject>(TimedSwitchPrefabPath);
+        }
+
+        var plate = new GameObject("TimedSwitch");
+        ApplySwitchButtonVisual(plate, sourceRenderer.sprite, timedSwitchType);
+        var created = PrefabUtility.SaveAsPrefabAsset(plate, TimedSwitchPrefabPath);
+        UnityEngine.Object.DestroyImmediate(plate);
+        return created;
+    }
+
+    static void ApplySwitchButtonVisual(GameObject plate, Sprite squareSprite, Type timedSwitchType)
+    {
+        var sr = plate.GetComponent<SpriteRenderer>();
+        if (sr == null)
+        {
+            sr = plate.AddComponent<SpriteRenderer>();
+        }
+
+        sr.sprite = squareSprite;
+        sr.drawMode = SpriteDrawMode.Sliced;
+        sr.size = new Vector2(1.05f, 0.65f);
+        sr.color = new Color(1f, 0.42f, 0.15f, 1f);
+        sr.sortingOrder = 3;
+
+        var collider = plate.GetComponent<BoxCollider2D>();
+        if (collider == null)
+        {
+            collider = plate.AddComponent<BoxCollider2D>();
+        }
+
+        collider.isTrigger = true;
+        collider.size = new Vector2(1.05f, 0.65f);
+
+        var timedSwitch = plate.GetComponent(timedSwitchType);
+        if (timedSwitch == null)
+        {
+            plate.AddComponent(timedSwitchType);
+        }
+    }
+
+    static void ExpandCameraAndConfiner()
+    {
+        var player = GameObject.Find("PlayerCharacter");
+        var mainCamera = GameObject.Find("Main Camera");
+        if (player == null || mainCamera == null)
+        {
+            return;
+        }
+
+        var cameraFollowType = LoadScriptType("Assets/_2DAdventureGame/Scripts/CameraFollow2D.cs");
+        var follow = mainCamera.GetComponent(cameraFollowType);
+        if (follow == null)
+        {
+            follow = mainCamera.AddComponent(cameraFollowType);
+        }
+
+        var so = new SerializedObject(follow);
+        so.FindProperty("target").objectReferenceValue = player.transform;
+        so.FindProperty("smoothSpeed").floatValue = 7.5f;
+        so.FindProperty("minBounds").vector2Value = new Vector2(-14.5f, -4.8f);
+        so.FindProperty("maxBounds").vector2Value = new Vector2(13.5f, 2.8f);
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        var cameraComponent = mainCamera.GetComponent<Camera>();
+        if (cameraComponent != null)
+        {
+            cameraComponent.orthographicSize = 5.1f;
+        }
+
+        var confinerGO = GameObject.Find("Camera Confiner");
+        if (confinerGO != null)
+        {
+            var box = confinerGO.GetComponent<BoxCollider2D>();
+            if (box != null)
+            {
+                box.size = new Vector2(34f, 12f);
+                box.offset = new Vector2(0f, -0.6f);
+            }
+        }
+    }
+
     static void ConfigurePlayerAudio()
     {
         var playerPath = $"{PrefabsRoot}/PlayerCharacter.prefab";
@@ -343,30 +659,7 @@ public static class Lab89Setup
             return prefab;
         }
 
-        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_2DAdventureGame/Art/Ducko/Environmnent/Decoration_1.png");
-        if (sprite == null)
-        {
-            throw new Exception("Decoration_1 sprite not found for TimedSwitch");
-        }
-
-        var plate = new GameObject("TimedSwitch");
-        var sr = plate.AddComponent<SpriteRenderer>();
-        sr.sprite = sprite;
-        sr.color = new Color(1f, 0.92f, 0.65f, 1f);
-        sr.sortingOrder = 1;
-
-        var collider = plate.AddComponent<BoxCollider2D>();
-        collider.isTrigger = true;
-        var size = sprite.bounds.size;
-        collider.size = new Vector2(size.x * 0.75f, size.y * 0.45f);
-        collider.offset = new Vector2(0f, size.y * 0.1f);
-
-        var timedSwitchType = LoadScriptType("Assets/_2DAdventureGame/Scripts/TimedSwitch.cs");
-        plate.AddComponent(timedSwitchType);
-
-        var created = PrefabUtility.SaveAsPrefabAsset(plate, TimedSwitchPrefabPath);
-        UnityEngine.Object.DestroyImmediate(plate);
-        return created;
+        return RefreshTimedSwitchPrefabVisual();
     }
 
     static GameObject EnsureEnemyBuffedPrefab()

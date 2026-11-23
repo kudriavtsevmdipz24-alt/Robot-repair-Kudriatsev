@@ -52,12 +52,22 @@ public class PlayerController : MonoBehaviour
     Color baseColor;
     Coroutine feedbackRoutine;
 
+    void OnEnable()
+    {
+        if (MoveAction != null) MoveAction.Enable();
+        if (LaunchAction != null) LaunchAction.Enable();
+        if (TalkAction != null) TalkAction.Enable();
+    }
+
+    void OnDisable()
+    {
+        if (MoveAction != null) MoveAction.Disable();
+        if (LaunchAction != null) LaunchAction.Disable();
+        if (TalkAction != null) TalkAction.Disable();
+    }
+
     void Start()
     {
-        // Вмикаємо зчитування вводу
-        MoveAction.Enable();
-        LaunchAction.Enable();
-        TalkAction.Enable();
 
         // Отримуємо посилання на компоненти
         rigidbody2d = GetComponent<Rigidbody2D>();
@@ -86,9 +96,12 @@ public class PlayerController : MonoBehaviour
         }
 
         // Передаємо напрям і швидкість в аніматор (Blend Tree глядає за поглядом)
-        animator.SetFloat("Look X", moveDirection.x);
-        animator.SetFloat("Look Y", moveDirection.y);
-        animator.SetFloat("Speed", move.magnitude);
+        if (animator != null)
+        {
+            animator.SetFloat("Look X", moveDirection.x);
+            animator.SetFloat("Look Y", moveDirection.y);
+            animator.SetFloat("Speed", move.magnitude);
+        }
 
         // Відлік таймера невразливості
         if (isInvincible)
@@ -186,15 +199,30 @@ public class PlayerController : MonoBehaviour
     // Постріл: створюємо снаряд перед роботом і штовхаємо його в напрямку погляду
     void Launch()
     {
+        if (projectilePrefab == null)
+        {
+            return;
+        }
+
+        Vector2 aim = moveDirection.sqrMagnitude > 0.01f ? moveDirection.normalized : Vector2.right;
         PlaySound(projectileThrowSound);
         GameObject projectileObject = Instantiate(projectilePrefab,
-            rigidbody2d.position + Vector2.up * 0.5f,
+            rigidbody2d.position + aim * 0.55f + Vector2.up * 0.2f,
             Quaternion.identity);
 
         Projectile projectile = projectileObject.GetComponent<Projectile>();
-        projectile.Launch(moveDirection, 300);
+        if (projectile == null)
+        {
+            Destroy(projectileObject);
+            return;
+        }
 
-        animator.SetTrigger("Launch");
+        projectile.Launch(aim, 300);
+
+        if (animator != null)
+        {
+            animator.SetTrigger("Launch");
+        }
     }
 
     // X: показати репліку NPC, якщо робот дивиться на нього
@@ -220,8 +248,9 @@ public class PlayerController : MonoBehaviour
 
     bool WasLaunchPressedThisFrame()
     {
-        bool actionPressed = LaunchAction.WasPressedThisFrame();
-        bool fallbackPressed = Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame;
+        bool actionPressed = LaunchAction != null && LaunchAction.WasPressedThisFrame();
+        bool fallbackPressed = Keyboard.current != null &&
+            (Keyboard.current.cKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame);
         return actionPressed || fallbackPressed;
     }
 

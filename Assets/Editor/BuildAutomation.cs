@@ -10,7 +10,7 @@ public static class BuildAutomation
     // Unity.exe -batchmode -quit -projectPath D:\Robot-repair-Kudriatsev -executeMethod BuildAutomation.BuildWindowsRelease
     public static void BuildWindowsRelease()
     {
-        const string outputDir = @"D:\Builds\RobotRepair-FloodRun-v1.0-Windows";
+        const string outputDir = @"D:\Builds\RobotRepair-FloodRun-v1.0.2-Windows";
         const string exeName = "Robot Repair - Flood Run.exe";
 
         Directory.CreateDirectory(outputDir);

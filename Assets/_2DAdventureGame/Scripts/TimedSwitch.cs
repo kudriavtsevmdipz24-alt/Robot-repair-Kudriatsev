@@ -25,11 +25,32 @@ public class TimedSwitch : MonoBehaviour
 
     IEnumerator OpenDoorFor(float seconds)
     {
-        door.SetActive(false);
+        SetDoorOpen(true);
         yield return new WaitForSeconds(seconds);
         if (door != null)
         {
-            door.SetActive(true);
+            SetDoorOpen(false);
+        }
+    }
+
+    // Відкриваємо лише «середній сегмент» стіни — бічні блоки лишаються.
+    void SetDoorOpen(bool open)
+    {
+        if (door == null)
+        {
+            return;
+        }
+
+        door.SetActive(true);
+        foreach (var col in door.GetComponentsInChildren<Collider2D>(true))
+        {
+            col.enabled = !open;
+        }
+
+        var renderer = door.GetComponent<SpriteRenderer>();
+        if (renderer != null)
+        {
+            renderer.enabled = !open;
         }
     }
 }

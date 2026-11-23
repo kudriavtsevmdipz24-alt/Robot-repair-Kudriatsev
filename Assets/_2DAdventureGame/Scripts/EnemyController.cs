@@ -22,9 +22,12 @@ public class EnemyController : MonoBehaviour
     Vector2 patrolOrigin;
     float patrolRange;
 
+    // Мінімальна відстань патруля — щоб ворог не «топтався на місці»
+    public float minPatrolRange = 2.2f;
+
     // Жорсткі межі рівня — ворог не виходить за ігрову зону
-    const float WorldMinX = -12.5f;
-    const float WorldMaxX = 11.5f;
+    const float WorldMinX = -14.5f;
+    const float WorldMaxX = 13.5f;
     const float WorldMinY = -4.8f;
     const float WorldMaxY = 2.8f;
 
@@ -38,7 +41,7 @@ public class EnemyController : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
         timer = changeTime;
         patrolOrigin = rigidbody2d.position;
-        patrolRange = speed * changeTime;
+        patrolRange = Mathf.Max(speed * changeTime, minPatrolRange);
     }
 
     void Update()
