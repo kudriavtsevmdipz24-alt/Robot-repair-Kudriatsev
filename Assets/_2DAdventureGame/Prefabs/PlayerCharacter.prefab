@@ -218,7 +218,15 @@ MonoBehaviour:
       m_Processors: 
       m_Groups: 
       m_Action: Launch
-      m_Flags: 8
+      m_Flags: 0
+    - m_Name: <Keyboard>/space
+      m_Id: 1a2c1c8b-87bb-40df-b175-04d50ab726fc
+      m_Path: <Keyboard>/space
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Launch
+      m_Flags: 0
     m_Flags: 0
     m_Priority: 0
   playerHitSound: {fileID: 8300000, guid: c7d3a91ac32abbe47a8931a8ffc37bc6, type: 3}
@@ -244,7 +252,7 @@ MonoBehaviour:
       m_Processors: 
       m_Groups: 
       m_Action: Talk
-      m_Flags: 8
+      m_Flags: 0
     m_Flags: 0
     m_Priority: 0
 --- !u!50 &5362504106292775871
