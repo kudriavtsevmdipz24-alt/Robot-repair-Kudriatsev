@@ -17,6 +17,14 @@ public class EnemyController : MonoBehaviour
     float timer;
     int direction = 1;
     bool broken = true;
+    Vector2 patrolOrigin;
+    float patrolRange;
+
+    // Жорсткі межі рівня — ворог не виходить за ігрову зону
+    const float WorldMinX = -12.5f;
+    const float WorldMaxX = 11.5f;
+    const float WorldMinY = -4.8f;
+    const float WorldMaxY = 2.8f;
 
     // Публічна властивість для GameManager: чи ворог ще зламаний
     public bool isBroken { get { return broken; } }
@@ -26,6 +34,8 @@ public class EnemyController : MonoBehaviour
         rigidbody2d = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         timer = changeTime;
+        patrolOrigin = rigidbody2d.position;
+        patrolRange = speed * changeTime;
     }
 
     void Update()
@@ -56,15 +66,20 @@ public class EnemyController : MonoBehaviour
         if (vertical)
         {
             position.y = position.y + speed * direction * Time.deltaTime;
+            position.y = Mathf.Clamp(position.y, patrolOrigin.y - patrolRange, patrolOrigin.y + patrolRange);
             animator.SetFloat("Move X", 0);
             animator.SetFloat("Move Y", direction);
         }
         else
         {
             position.x = position.x + speed * direction * Time.deltaTime;
+            position.x = Mathf.Clamp(position.x, patrolOrigin.x - patrolRange, patrolOrigin.x + patrolRange);
             animator.SetFloat("Move X", direction);
             animator.SetFloat("Move Y", 0);
         }
+
+        position.x = Mathf.Clamp(position.x, WorldMinX, WorldMaxX);
+        position.y = Mathf.Clamp(position.y, WorldMinY, WorldMaxY);
 
         rigidbody2d.MovePosition(position);
     }
