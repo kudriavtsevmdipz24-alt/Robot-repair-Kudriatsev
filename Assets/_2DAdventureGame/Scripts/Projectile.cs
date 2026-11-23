@@ -30,7 +30,17 @@ public class Projectile : MonoBehaviour
     // Влучання у тригер (ворог — тригер; стіни теж повідомляються, бо колайдер снаряда — тригер)
     void OnTriggerEnter2D(Collider2D other)
     {
+        // Не знищуємо снаряд об гравця або інший снаряд у момент спавну.
+        if (other.GetComponent<PlayerController>() != null || other.GetComponent<Projectile>() != null)
+        {
+            return;
+        }
+
         EnemyController enemy = other.GetComponent<EnemyController>();
+        if (enemy == null)
+        {
+            enemy = other.GetComponentInParent<EnemyController>();
+        }
         if (enemy != null)
         {
             enemy.Fix();
@@ -41,6 +51,10 @@ public class Projectile : MonoBehaviour
     // Страховка: спрацює, лише якщо в снаряда вимкнено Is Trigger
     void OnCollisionEnter2D(Collision2D collision)
     {
+        if (collision.gameObject.GetComponent<PlayerController>() != null)
+        {
+            return;
+        }
         Destroy(gameObject);
     }
 }
